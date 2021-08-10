@@ -5,10 +5,12 @@
 //  Created by Adam Wu on 2021/8/7.
 //
 
-#include <iostream>
+#include "driver.hh"
 
 int main(int argc, const char * argv[]) {
-    // insert code here...
-    std::cout << "Hello, World!\n";
+    parse::Driver driver;
+    driver.parse();
+
+    return 0;
     return 0;
 }
