@@ -3,12 +3,14 @@
 # define SCANPIT_HH_
 
 # include "y.tab.hh"
+# include "myshell.hpp"
+
 
 # ifndef YY_DECL
 #  define YY_DECL parse::Parser::token_type                         \
 parse::Scanner::yylex(parse::Parser::semantic_type* yylval,    \
 parse::Parser::location_type*,        \
-parse::Driver& driver)
+parse::Driver& driver, myshell& shell)
 # endif
 
 
@@ -31,7 +33,8 @@ namespace parse
             virtual Parser::token_type yylex(
                 Parser::semantic_type* yylval,
                 Parser::location_type* l,
-                Driver& driver);
+                Driver& driver,
+                myshell& shell);
 
             void set_debug(bool b);
     };

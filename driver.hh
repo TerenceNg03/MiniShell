@@ -5,6 +5,7 @@
 # include <string>
 # include <iostream>
 # include <fstream>
+#include "myshell.hpp"
 
 namespace parse
 {
@@ -15,25 +16,27 @@ namespace parse
 
     class Driver
     {
-        public:
-            Driver();
-            ~Driver();
+    public:
+        Driver(std::vector<std::string> args);
+        ~Driver();
 
-            int parse();
-            int parse_file(std::string& path);
+        int parse();
+        int parse_file(std::string& path);
 
-            void reset();
+        void reset();
 
-        private:
-            Scanner*      scanner_;
-            Parser*       parser_;
-            location*     location_;
-            int           error_;
+    private:
+        Scanner*      scanner_;
+        Parser*       parser_;
+        location*     location_;
+        int           error_;
 
-            /// Allows Parser and Scanner to access private attributes
-            /// of the Driver class
-            friend class  Parser;
-            friend class  Scanner;
+        /// Allows Parser and Scanner to access private attributes
+        /// of the Driver class
+        friend class  Parser;
+        friend class  Scanner;
+
+        myshell shell;
     };
 }
 

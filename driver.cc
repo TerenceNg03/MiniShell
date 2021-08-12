@@ -2,13 +2,14 @@
 #include "y.tab.hh"
 #include "scanner.hh"
 
+using namespace std;
 namespace parse
 {
-    Driver::Driver()
-        : scanner_ (new Scanner()),
-          parser_ (new Parser(*this)),
-          location_ (new location())
+    Driver::Driver(vector<string> args):shell(args)
     {
+        parser_  = new Parser(*this, shell);
+        scanner_ = new Scanner();
+        location_ = new location();
     }
 
 

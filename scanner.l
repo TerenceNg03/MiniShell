@@ -1,21 +1,36 @@
 %{
-#include <stdio.h>
+#include <iostream>
 #include "y.tab.hh"
 #include "scanner.hh"
 
 #define yyterminate() return( parse::Parser::token::END )
+#define register
+
+#define STEP()                                      \
+do {                                              \
+driver.location_->step ();                      \
+} while (0)
+
+#define COL(Col)                                    \
+driver.location_->columns (Col)
+
+#define LINE(Line)                                    \
+do{                                                \
+driver.location_->lines (Line);                    \
+} while (0)
+
+#define YY_USER_ACTION                                \
+COL(yyleng);
+
+#define yywrap() 1
 
 %}
 
-%option noinput nounput noyywrap 8bit nodefault
+%option noinput nounput 8bit nodefault
 %option debug
 %option noyywrap
-%option never-interactive
-%option yylineno
-%option batch
 %option prefix="parse"
 
-%option yylineno
 %option c++
 %%
 
@@ -28,7 +43,7 @@ exec return parse::Parser::token::EXEC;
 exit return parse::Parser::token::EXIT;
 fg return parse::Parser::token::FG;
 man return parse::Parser::token::MAN;
-ps return parse::Parser::token::PS;
+jobs return parse::Parser::token::JOBS;
 set return parse::Parser::token::SET;
 shift return parse::Parser::token::SHIFT;
 test return parse::Parser::token::TEST;
@@ -36,14 +51,16 @@ time return parse::Parser::token::TIME;
 umask return parse::Parser::token::UNMASK;
 unset return parse::Parser::token::UNSET;
 
-[a-zA-Z0-9\-\.] /*yylval->s=new std::string(yytext);*/return parse::Parser::token::NAME;
+"[0-2]>>" yylval->build(yytext[0]-'0');parse::Parser::token::RD_I_AP;
+"[0-2]>" yylval->build(yytext[0]-'0');parse::Parser::token::RD_I;
+"[0-2]<" yylval->build(yytext[0]-'0');parse::Parser::token::RD_O;
+
+
+[a-zA-Z0-9\-\.]{1,} yylval->build(std::string(yytext));return parse::Parser::token::NAME;
 "&" return parse::Parser::token::BACK;
 "|" return parse::Parser::token::PIPE;
-">>" parse::Parser::token::RD_I_AP;
-">" parse::Parser::token::RD_I;
-"<" parse::Parser::token::RD_O;
 
-\n return parse::Parser::token::NEWLINE;
+\n std::cout<<"myshell $"<<std::flush;return parse::Parser::token::NEWLINE;
 [ \t]+ /* ignore whitespace */
 . return parse::Parser::token::UNKNOWN;
 
