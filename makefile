@@ -5,7 +5,7 @@ CFLAGS = -Wall -g
 all: lex shell
 	$(CC) $(FLAGS) -c driver.cc -o OBJ/driver.o
 	$(CC) $(FLAGS) -c main.cpp -o OBJ/main.o
-	$(CC) $(FLAGS) OBJ/*.o -o myshell
+	$(CC) $(FLAGS) OBJ/*.o -o minishell
 
 lex: dir
 	yacc -d -Wno-yacc parser.y -o OBJ/y.tab.cc
@@ -13,7 +13,7 @@ lex: dir
 	$(CC) $(FLAGS) -c OBJ/y.tab.cc -o OBJ/parser.o
 	$(CC) $(FLAGS) -c OBJ/lex.yy.cc -o OBJ/scanner.o
 shell:
-	$(CC) $(FLAGS) -c built-in/myshell.cpp -o OBJ/myshell.o
+	$(CC) $(FLAGS) -c built-in/minishell.cpp -o OBJ/minishell.o
 
 dir:
 	[ -d OBJ ] || mkdir OBJ
@@ -21,5 +21,5 @@ dir:
 
 clean:
 	rm -rf ./OBJ
-	rm -rf ./bin/myshell
-	rm myshell
+	rm -rf ./bin/minishell
+	rm minishell

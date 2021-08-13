@@ -5,7 +5,7 @@
 # include <string>
 # include <iostream>
 # include <fstream>
-#include "myshell.hpp"
+#include "minishell.hpp"
 
 namespace parse
 {
@@ -36,7 +36,7 @@ namespace parse
         friend class  Parser;
         friend class  Scanner;
 
-        myshell shell;
+        minishell shell;
     };
 }
 

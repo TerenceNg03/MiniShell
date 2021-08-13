@@ -8,7 +8,7 @@
 #ifndef thread_hpp
 #define thread_hpp
 
-#include "myshell.hpp"
+#include "minishell.hpp"
 
 class ps:command{
 

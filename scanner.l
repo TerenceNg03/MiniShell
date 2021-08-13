@@ -2,7 +2,8 @@
 #include <iostream>
 #include "y.tab.hh"
 #include "scanner.hh"
-
+#include <filesystem>
+namespace fs = std::filesystem;
 #define yyterminate() return( parse::Parser::token::END )
 #define register
 
@@ -60,7 +61,7 @@ unset return parse::Parser::token::UNSET;
 "&" return parse::Parser::token::BACK;
 "|" return parse::Parser::token::PIPE;
 
-\n std::cout<<"myshell $"<<std::flush;return parse::Parser::token::NEWLINE;
+\n return parse::Parser::token::NEWLINE;
 [ \t]+ /* ignore whitespace */
 . return parse::Parser::token::UNKNOWN;
 

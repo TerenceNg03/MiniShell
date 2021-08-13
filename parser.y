@@ -9,11 +9,14 @@
 %}
 
 %code requires{
-    #include "myshell.hpp"
+    #include "minishell.hpp"
     #include "driver.hh"
     #include "location.hh"
     #include "position.hh"
     #include <tuple>
+    #include <filesystem>
+    namespace fs = std::filesystem;
+    #include <memory>
 }
 
 %code provides
@@ -34,8 +37,8 @@
 %locations
 %define api.namespace {parse}
 %define api.parser.class {Parser}
-%parse-param {Driver &driver}{myshell& shell}
-%lex-param {Driver &driver}{myshell& shell}
+%parse-param {Driver &driver}{minishell& shell}
+%lex-param {Driver &driver}{minishell& shell}
 %define parse.error verbose
 %language "c++"
 %define api.value.type variant
@@ -47,47 +50,52 @@
 
 %type CMDS
 
-%type<command> COMMAND_NAME
-%type<command> BUILT_IN BIN
+%type<command*> BUILT_IN
 %type<std::vector<std::tuple<int,int,std::string>>> REDIRECTION
 %type<std::vector<std::string>> ARGUMENTS
+%type<std::string> BIN
 %type<bool> BACKGROUND;
 %type<std::pair<int,int>> RD_OP;
 
 %%
-CMDS :  /*empty*/|CMDS CMD NEWLINE;
 
-CMD : COMMAND_NAME ARGUMENTS REDIRECTION BACKGROUND | ;
+CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::current_path().filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"myshell "<<fs::current_path().filename().string()<<" $ ";};
 
-COMMAND_NAME : BUILT_IN | BIN;
+CMD : BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
+{
+    $1->set_args($2);
+    $1->execute();
+}
+
+| BIN ARGUMENTS REDIRECTION BACKGROUND | ;
 
 /* built-in functions */
 BUILT_IN :
 
-BG {$$=command();}
-| CD {$$=command();}
-| CLR {$$=command();}
-| DIR {$$=command();}
-| _ECHO {$$=command();}
-| EXEC {$$=command();}
+BG {$$=new command(shell);}
+| CD {$$=new cd(shell);}
+| CLR {$$=new command(shell);}
+| DIR {$$=new command(shell);}
+| _ECHO {$$=new command(shell);}
+| EXEC {$$=new command(shell);}
 | EXIT {YYACCEPT;}
-| FG {$$=command();}
-| MAN {$$=command();}
-| JOBS {$$=command();}
-| SET {$$=command();}
-| SHIFT {$$=command();}
-| TEST {$$=command();}
-| TIME {$$=command();}
-| UNMASK {$$=command();}
-| UNSET {$$=command();}
+| FG {$$=new command(shell);}
+| MAN {$$=new command(shell);}
+| JOBS {$$=new command(shell);}
+| SET {$$=new command(shell);}
+| SHIFT {$$=new command(shell);}
+| TEST {$$=new command(shell);}
+| TIME {$$=new command(shell);}
+| UNMASK {$$=new command(shell);}
+| UNSET {$$=new command(shell);}
 
 
 ;
 
-BIN : NAME{$$=command();std::cout<<$1<<std::endl;
-    FILE* fp = fopen("output.txt","w");
-    fprintf(fp,"Hello");
-    fclose(fp);
+BIN : NAME
+{
+    $$ = $1;
+    std::cout<<$1<<std::endl;
 };
 
 /* arguments */

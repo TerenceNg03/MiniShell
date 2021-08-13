@@ -6,13 +6,12 @@
 //
 
 #include "driver.hh"
-#include "myshell.hpp"
+#include "minishell.hpp"
 
 using namespace std;
 
 int main(int argc, const char * argv[]) {
     std::ios::sync_with_stdio(false);
-    cout<<"\nMyshell By Adam Wu\n\nmyshell $";
     parse::Driver driver(vector<string>(argv,argv+argc));
     driver.parse();
 
