@@ -44,7 +44,7 @@
 %define api.value.type variant
 
 %token BG CD CLR DIR _ECHO EXEC EXIT FG MAN JOBS SET SHIFT TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
-%token <int> RD_I_AP RD_I RD_O
+%token <int> RD_O_AP RD_I RD_O
 %token END
 %token <std::string> NAME
 
@@ -64,7 +64,32 @@ CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::current_pat
 CMD : BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
 {
     $1->set_args($2);
+    std::ifstream* i;
+    std::ofstream* o;
+    for(auto rd:$3){
+        switch(std::get<1>(rd)){
+            case 0:
+            i = new std::ifstream(std::get<2>(rd));break;
+            case 1:
+            o = new std::ofstream(std::get<2>(rd),std::ios_base::trunc);break;
+            case 2:
+            o = new std::ofstream(std::get<2>(rd),std::ios_base::app);break;
+        }
+        switch(std::get<0>(rd)){
+            case 0:
+            $1->set_is((std::istream*)i);break;
+            case 1:
+            $1->set_os((std::ostream*)o);break;
+            case 2:
+            $1->set_es((std::ostream*)o);break;
+        }
+
+    }
     $1->execute();
+
+    if($1)delete $1;
+    if(i)delete i;
+    if(o)delete o;
 }
 
 | BIN ARGUMENTS REDIRECTION BACKGROUND | ;
@@ -74,8 +99,8 @@ BUILT_IN :
 
 BG {$$=new command(shell);}
 | CD {$$=new cd(shell);}
-| CLR {$$=new command(shell);}
-| DIR {$$=new command(shell);}
+| CLR {$$=new clr(shell);}
+| DIR {$$=new dir(shell);}
 | _ECHO {$$=new command(shell);}
 | EXEC {$$=new command(shell);}
 | EXIT {YYACCEPT;}
@@ -111,7 +136,7 @@ REDIRECTION :  /* empty */{$$ = std::vector<std::tuple<int,int,std::string>>();}
 
 };
 
-RD_OP : RD_I {$$ = std::make_pair($1,0);} | RD_O {$$ = std::make_pair($1,1);} | RD_I_AP {$$ = std::make_pair($1,2);};
+RD_OP : RD_I {$$ = std::make_pair($1,0);} | RD_O {$$ = std::make_pair($1,1);} | RD_O_AP {$$ = std::make_pair($1,2);};
 
 /* background */
 
@@ -123,7 +148,7 @@ namespace parse
 {
     void Parser::error(const location&, const std::string& m)
     {
-        std::cout << *driver.location_ << ": " << m << std::flush;
+        std::cout << *driver.location_ << ": " << m << std::endl;
         driver.error_ = (driver.error_ == 127 ? 127 : driver.error_ + 1);
     }
 }

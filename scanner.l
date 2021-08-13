@@ -52,12 +52,12 @@ time return parse::Parser::token::TIME;
 umask return parse::Parser::token::UNMASK;
 unset return parse::Parser::token::UNSET;
 
-"[0-2]>>" yylval->build(yytext[0]-'0');parse::Parser::token::RD_I_AP;
-"[0-2]>" yylval->build(yytext[0]-'0');parse::Parser::token::RD_I;
-"[0-2]<" yylval->build(yytext[0]-'0');parse::Parser::token::RD_O;
+[1-2]">>" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_O_AP;
+[1-2]">" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_O;
+[0]"<" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_I;
 
-
-[a-zA-Z0-9\-\.]{1,} yylval->build(std::string(yytext));return parse::Parser::token::NAME;
+[\'\"].*[\'\"] yylval->build(std::string(yytext));
+[a-zA-Z0-9\-\./]{1,} yylval->build(std::string(yytext));return parse::Parser::token::NAME;
 "&" return parse::Parser::token::BACK;
 "|" return parse::Parser::token::PIPE;
 

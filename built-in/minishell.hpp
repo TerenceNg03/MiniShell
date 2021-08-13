@@ -39,9 +39,9 @@ public:
     command(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):shell(&shell),arguments(args){};
     virtual int execute(){*error<<"Empty command executed.\n";return -1;};
     void set_args(std::vector<std::string> args);
-    void set_is(std::istream& i);
-    void set_os(std::ostream& o);
-    void set_es(std::ostream& err);
+    void set_is(std::istream* i);
+    void set_os(std::ostream* o);
+    void set_es(std::ostream* err);
 };
 
 class cd:public command{
@@ -56,6 +56,14 @@ class clr:public command{
 public:
 
     clr(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+};
+
+class dir:public command{
+public:
+
+    dir(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
 
     virtual int execute();
 };
