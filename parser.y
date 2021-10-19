@@ -17,6 +17,8 @@
     #include <filesystem>
     namespace fs = std::filesystem;
     #include <memory>
+    #include <unistd.h>
+    #include <signal.h>
 }
 
 %code provides
@@ -29,7 +31,7 @@
         inline void
         yyerror (const char* msg)
         {
-            std::cout << msg << std::endl;
+            std::cout << msg << "\n";
         }
     }
 }
@@ -43,13 +45,12 @@
 %language "c++"
 %define api.value.type variant
 
-%token BG CD CLR DIR _ECHO EXEC EXIT FG MAN JOBS SET SHIFT TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
+%token BG CD CLR LS _ECHO EXEC EXIT FG MAN PS SET SHIFT SLEEP TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
 %token <int> RD_O_AP RD_I RD_O
-%token END
+%token _EOF
 %token <std::string> NAME
 
 %type CMDS
-
 %type<command*> BUILT_IN
 %type<std::vector<std::tuple<int,int,std::string>>> REDIRECTION
 %type<std::vector<std::string>> ARGUMENTS
@@ -61,7 +62,8 @@
 
 CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::current_path().filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"myshell "<<fs::current_path().filename().string()<<" $ ";};
 
-CMD : BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
+
+CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
 {
     $1->set_args($2);
     std::ifstream* i;
@@ -85,14 +87,30 @@ CMD : BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
         }
 
     }
-    $1->execute();
+    if($4){
+        pid_t ppid = getpid();
+        pid_t pid = fork();
+        if(pid==-1){
+            std::cerr<<"Error : Unable create new process.\n";
+            return -1;
+        }else if(pid==0){
+            int ret = $1->execute();
+            _exit(ret);
+        }else{
+            shell.child_p[pid] = $1->get_name();
+        }
+
+    }else{
+        $1->execute();
+    }
+
 
     if($1)delete $1;
     if(i)delete i;
     if(o)delete o;
 }
 
-| BIN ARGUMENTS REDIRECTION BACKGROUND | ;
+| BIN ARGUMENTS REDIRECTION BACKGROUND | _EOF {std::cout<<"\n\n[Process Terminated By EOF]\n\n";YYACCEPT;};
 
 /* built-in functions */
 BUILT_IN :
@@ -100,15 +118,16 @@ BUILT_IN :
 BG {$$=new command(shell);}
 | CD {$$=new cd(shell);}
 | CLR {$$=new clr(shell);}
-| DIR {$$=new dir(shell);}
+| LS {$$=new ls(shell);}
 | _ECHO {$$=new command(shell);}
 | EXEC {$$=new command(shell);}
-| EXIT {YYACCEPT;}
+| EXIT {std::cout<<"\n[Process Quited]\n\n";YYACCEPT;}
 | FG {$$=new command(shell);}
 | MAN {$$=new command(shell);}
-| JOBS {$$=new command(shell);}
+| PS {$$=new ps(shell);}
 | SET {$$=new command(shell);}
 | SHIFT {$$=new command(shell);}
+| SLEEP {$$=new class sleep(shell);}
 | TEST {$$=new command(shell);}
 | TIME {$$=new command(shell);}
 | UNMASK {$$=new command(shell);}
@@ -120,7 +139,7 @@ BG {$$=new command(shell);}
 BIN : NAME
 {
     $$ = $1;
-    std::cout<<$1<<std::endl;
+    std::cout<<$1<<"\n";
 };
 
 /* arguments */
@@ -148,7 +167,7 @@ namespace parse
 {
     void Parser::error(const location&, const std::string& m)
     {
-        std::cout << *driver.location_ << ": " << m << std::endl;
+        std::cout << *driver.location_ << ": " << m << "\n";
         driver.error_ = (driver.error_ == 127 ? 127 : driver.error_ + 1);
     }
 }

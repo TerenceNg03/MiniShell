@@ -37,16 +37,17 @@ COL(yyleng);
 
 bg return parse::Parser::token::BG;
 cd return parse::Parser::token::CD;
-clr return parse::Parser::token::CLR;
-dir return parse::Parser::token::DIR;
+clear return parse::Parser::token::CLR;
+ls return parse::Parser::token::LS;
 echo return parse::Parser::token::_ECHO;
 exec return parse::Parser::token::EXEC;
 exit return parse::Parser::token::EXIT;
 fg return parse::Parser::token::FG;
 man return parse::Parser::token::MAN;
-jobs return parse::Parser::token::JOBS;
+ps return parse::Parser::token::PS;
 set return parse::Parser::token::SET;
 shift return parse::Parser::token::SHIFT;
+sleep return parse::Parser::token::SLEEP;
 test return parse::Parser::token::TEST;
 time return parse::Parser::token::TIME;
 umask return parse::Parser::token::UNMASK;
@@ -62,6 +63,7 @@ unset return parse::Parser::token::UNSET;
 "|" return parse::Parser::token::PIPE;
 
 \n return parse::Parser::token::NEWLINE;
+<<EOF>> return parse::Parser::token::_EOF;
 [ \t]+ /* ignore whitespace */
 . return parse::Parser::token::UNKNOWN;
 

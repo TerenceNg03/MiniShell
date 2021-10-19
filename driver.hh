@@ -35,7 +35,7 @@ namespace parse
         /// of the Driver class
         friend class  Parser;
         friend class  Scanner;
-
+    public:
         minishell shell;
     };
 }

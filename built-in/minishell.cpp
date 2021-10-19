@@ -6,7 +6,10 @@
 //
 
 #include "minishell.hpp"
+#include <regex>
 #include <filesystem>
+#include <unistd.h>
+
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -39,11 +42,36 @@ int clr::execute(){
     return 0;
 }
 
-int dir::execute(){
+int ls::execute(){
     fs::directory_iterator dit(fs::current_path());
     for (auto f:dit){
         *output<<f.path().filename().string()<<'\t';
     }
     *output<<"\n";
+    return 0;
+}
+
+int sleep::execute(){
+    if(arguments.size()<1){
+        *error<<"Too few arguments\n";
+        return -1;
+    }
+    regex re("([0-9]|.)*");
+    std::cmatch m;
+    if(regex_match(arguments.at(0).c_str(),m,re)){
+        double _t = atof(arguments.at(0).c_str());
+        unsigned int t = _t*1000000;
+        usleep(t);
+    }else{
+        *error<<arguments[0]<<" : is not a number.\n";
+    }
+    return 0;
+}
+
+int ps::execute(){
+    *output<<"\tPID\tName\n";
+    for(auto p : shell->child_p){
+        *output<<"\t"<<p.first<<"\t"<<p.second<<"\n";
+    }
     return 0;
 }

@@ -14,15 +14,15 @@
 #include <thread>
 #include <list>
 #include <ostream>
+#include "process.hpp"
 
 class minishell{
     friend class command;
 
 private:
 
-    std::list<std::pair<std::thread, std::string>> threads;
-
 public:
+    std::map<pid_t, std::string> child_p;
 
     minishell(std::vector<std::string> args);
 };
@@ -38,6 +38,7 @@ protected:
 public:
     command(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):shell(&shell),arguments(args){};
     virtual int execute(){*error<<"Empty command executed.\n";return -1;};
+    virtual std::string get_name(){return "Empty command";};
     void set_args(std::vector<std::string> args);
     void set_is(std::istream* i);
     void set_os(std::ostream* o);
@@ -50,6 +51,7 @@ public:
     cd(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
 
     virtual int execute();
+    virtual std::string get_name(){return "cd";};
 };
 
 class clr:public command{
@@ -58,13 +60,33 @@ public:
     clr(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
 
     virtual int execute();
+    virtual std::string get_name(){return "clear";};
 };
 
-class dir:public command{
+class ls:public command{
 public:
 
-    dir(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+    ls(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
 
     virtual int execute();
+    virtual std::string get_name(){return "ls";};
+};
+
+class sleep:public command{
+public:
+
+    sleep(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "sleep";};
+};
+
+class ps:public command{
+public:
+
+    ps(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "ps";};
 };
 #endif /* minishell_hpp */
