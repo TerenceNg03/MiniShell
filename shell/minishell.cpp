@@ -22,7 +22,7 @@ minishell::minishell(std::vector<std::string> args){
     child_p[pid] = "minishell";
 
     env["PWD"] = fs::current_path();
-    env["PATH"] = fs::current_path().string()+"/bin"+":/bin";
+    env["PATH"] = fs::current_path().string()+"/bin:/bin:/usr/bin";
     env["HOME"] = getpwuid(getuid())->pw_dir;
     env["SHELL"] = getpwuid(getuid())->pw_shell;
 }

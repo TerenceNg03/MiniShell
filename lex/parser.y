@@ -215,12 +215,12 @@ BG {$$=new bg(shell);}
 | EXIT {std::cout<<"\n[Shell Terminated by Exit]\n\n";YYACCEPT;}
 | FG {$$=new fg(shell);}
 | PS {$$=new ps(shell);}
-| SET {$$=new command(shell);}
+| SET {$$=new set(shell);}
 | SHIFT {$$=new command(shell);}
 | TEST {$$=new command(shell);}
 | TIME {$$=new command(shell);}
 | UNMASK {$$=new command(shell);}
-| UNSET {$$=new command(shell);}
+| UNSET {$$=new unset(shell);}
 
 
 ;

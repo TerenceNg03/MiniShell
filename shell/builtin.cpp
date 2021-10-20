@@ -97,3 +97,20 @@ int fg::execute(){
     }
     return 0;
 }
+
+int set::execute(){
+
+    for(auto p : shell.env){
+        *output<<p.first<<" = "<<p.second<<"\n";
+    }
+    return 0;
+}
+
+int unset::execute(){
+    if(arguments.size()<1){
+        return 0;
+    }
+    shell.env.erase(shell.env.find(arguments.at(0)));
+    return 0;
+}
+

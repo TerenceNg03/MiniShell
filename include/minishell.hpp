@@ -83,4 +83,22 @@ public:
     virtual int execute();
     virtual std::string get_name(){return "fg";};
 };
+
+class set:public command{
+public:
+
+    set(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "set";};
+};
+
+class unset:public command{
+public:
+
+    unset(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "unset";};
+};
 #endif /* minishell_hpp */
