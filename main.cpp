@@ -18,22 +18,19 @@ struct sigaction sa_ch,sa_sus;
 void child_term_handler(int sig, siginfo_t *info, void *context)
 {
     pid_t cpid = info->si_pid;
-    if(shell&&shell->child_p.count(cpid)){
-        string name = shell->child_p[cpid];
-        if(!shell->waiting)cout<<"\n[ Process Done : "<<cpid<<" "<<name<<" ]\n";
-        shell->child_p.erase(cpid);
-    }
+
+    if(shell&&!shell->waiting)cout<<"\n[ Process Done : "<<cpid<<" ]\n";
+    
 }
 
 void suspend_handler(int sig, siginfo_t *info, void *context){
 
-    if(shell&&shell->waiting&&shell->wait_pid!=-1){
-        string name = shell->child_p[shell->wait_pid];
+    if (shell) {
         shell->waiting = false;
         pid_t tmp = shell->wait_pid;
         shell->wait_pid = -1;
         kill(tmp, SIGTSTP);
-        cout<<"\n[ Process Suspended : "<<tmp<<" "<<name<<" ]\n";
+        cout<<"\n[ Process Suspended : "<<tmp<<" ]\n";
     }
 }
 

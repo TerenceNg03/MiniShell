@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/stat.h>
+
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -53,12 +55,15 @@ int bg::execute(){
 
     pid_t cpid = atoi(arguments.at(0).c_str());
 
-    if(shell.child_p.find(cpid)!=shell.child_p.end()){
-        kill(cpid, SIGCONT);
-    }else{
+    kill(cpid,0);
+    if (errno == ESRCH) {
+        // process doesn't exist
         *error<<"Invalid pid : "<<arguments[0]<<"\n";
-        return -2;
+    }else{
+        kill(cpid, SIGCONT);
     }
+
+
     return 0;
 }
 
@@ -77,16 +82,18 @@ int fg::execute(){
 
     pid_t cpid = atoi(arguments.at(0).c_str());
 
-    if(shell.child_p.find(cpid)!=shell.child_p.end()){
+    kill(cpid,0);
+    if (errno == ESRCH) {
+        // process doesn't exist
+        *error<<"Invalid pid : "<<arguments[0]<<"\n";
+    }else{
         shell.waiting = true;
         shell.wait_pid = cpid;
         kill(cpid, SIGCONT);
         int status;
         waitpid(cpid, &status, WUNTRACED);
-    }else{
-        *error<<"Invalid pid : "<<arguments[0]<<"\n";
-        return -2;
     }
+
     return 0;
 }
 

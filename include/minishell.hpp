@@ -20,7 +20,6 @@ class minishell{
 
 public:
     std::map<std::string,std::string> env;
-    std::map<pid_t,std::string> child_p;
     bool waiting;
     pid_t wait_pid=-1;
 

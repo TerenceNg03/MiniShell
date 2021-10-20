@@ -97,10 +97,7 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
         signal(SIGTSTP,SIG_DFL);
         int ret = $1->execute();
         exit(ret);
-    }else{
-        shell.child_p[pid] = $1->get_name();
     }
-
     if($1)delete $1;
     if(i)delete i;
     if(o)delete o;
@@ -161,8 +158,6 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
             int ret = execv($1.c_str(),(char *const *)&argv[0]);
             std::cerr<<"Exec Failed with Error Code  "<<errno<<"\n";
             exit(ret);
-        }else{
-            shell.child_p[pid] = fs::path($1).filename().string();
         }
     }
 }
