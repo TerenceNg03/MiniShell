@@ -46,7 +46,7 @@
 %language "c++"
 %define api.value.type variant
 
-%token BG CD _ECHO EXEC EXIT FG PS SET SHIFT TEST TIME UNMASK UNSET UNKNOWN
+%token BG CD _ECHO EXEC EXIT FG SET SHIFT TEST TIME UNMASK UNSET UNKNOWN
 %token NEWLINE BACK PIPE ASSIGN
 %token <int> RD_O_AP RD_I RD_O
 %token _EOF
@@ -191,7 +191,6 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
             std::cerr<<"Exec Failed with Error Code  "<<errno<<"\n";
             exit(ret);
         }else{
-            shell.child_p[pid] = fs::path($1).filename().string();
             int status;
             shell.wait_pid = pid;
             waitpid(pid,&status,WUNTRACED);
@@ -214,7 +213,6 @@ BG {$$=new bg(shell);}
 | EXEC {$$=new command(shell);}
 | EXIT {std::cout<<"\n[Shell Terminated by Exit]\n\n";YYACCEPT;}
 | FG {$$=new fg(shell);}
-| PS {$$=new ps(shell);}
 | SET {$$=new set(shell);}
 | SHIFT {$$=new command(shell);}
 | TEST {$$=new command(shell);}

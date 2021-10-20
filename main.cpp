@@ -20,7 +20,7 @@ void child_term_handler(int sig, siginfo_t *info, void *context)
     pid_t cpid = info->si_pid;
     if(shell&&shell->child_p.count(cpid)){
         string name = shell->child_p[cpid];
-        if(!shell->waiting)cout<<"\nProcess Terminated : "<<cpid<<" "<<name<<"\n";
+        if(!shell->waiting)cout<<"\n[ Process Done : "<<cpid<<" "<<name<<" ]\n";
         shell->child_p.erase(cpid);
     }
 }
@@ -33,11 +33,12 @@ void suspend_handler(int sig, siginfo_t *info, void *context){
         pid_t tmp = shell->wait_pid;
         shell->wait_pid = -1;
         kill(tmp, SIGTSTP);
-        cout<<"\nProcess Suspended : "<<tmp<<" "<<name<<"\n";
+        cout<<"\n[ Process Suspended : "<<tmp<<" "<<name<<" ]\n";
     }
 }
 
 int main(int argc, const char * argv[]) {
+//    std::ios::sync_with_stdio(false);
 
     //setup driver
     parse::Driver driver(vector<string>(argv,argv+argc));

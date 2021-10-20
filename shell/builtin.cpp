@@ -38,14 +38,6 @@ int cd::execute(){
     return 0;
 }
 
-int ps::execute(){
-    *output<<"\tPID\tName\n";
-    for(auto p : shell.child_p){
-        *output<<"\t"<<p.first<<"\t"<<p.second<<"\n";
-    }
-    return 0;
-}
-
 int bg::execute(){
     if(arguments.size()<1){
         *error<<"Too few arguments\n";

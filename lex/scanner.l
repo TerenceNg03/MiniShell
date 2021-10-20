@@ -44,7 +44,6 @@ echo return parse::Parser::token::_ECHO;
 exec return parse::Parser::token::EXEC;
 exit return parse::Parser::token::EXIT;
 fg return parse::Parser::token::FG;
-ps return parse::Parser::token::PS;
 set return parse::Parser::token::SET;
 shift return parse::Parser::token::SHIFT;
 test return parse::Parser::token::TEST;

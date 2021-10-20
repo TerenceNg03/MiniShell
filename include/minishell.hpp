@@ -20,7 +20,7 @@ class minishell{
 
 public:
     std::map<std::string,std::string> env;
-    std::map<pid_t, std::string> child_p;
+    std::map<pid_t,std::string> child_p;
     bool waiting;
     pid_t wait_pid=-1;
 
@@ -54,16 +54,6 @@ public:
 
     virtual int execute();
     virtual std::string get_name(){return "cd";};
-};
-
-
-class ps:public command{
-public:
-
-    ps(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
-
-    virtual int execute();
-    virtual std::string get_name(){return "ps";};
 };
 
 class bg:public command{

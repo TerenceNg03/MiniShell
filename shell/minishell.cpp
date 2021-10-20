@@ -19,7 +19,11 @@ using namespace std;
 
 minishell::minishell(std::vector<std::string> args){
     pid_t pid = getpid();
-    child_p[pid] = "minishell";
+    string shell_cmd = "minishell";
+    for(auto arg : args){
+        shell_cmd += " "+arg;
+    }
+    child_p[pid] = shell_cmd;
 
     env["PWD"] = fs::current_path();
     env["PATH"] = fs::current_path().string()+"/bin:/bin:/usr/bin";
