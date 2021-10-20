@@ -1,15 +1,15 @@
 //
-//  minishell.cpp
-//  minishell
+//  builtin.cpp
+//  MiniShell
 //
-//  Created by Adam Wu on 2021/8/12.
+//  Created by Terence Ng on 2021/10/20.
 //
 
 #include "minishell.hpp"
 #include <regex>
 #include <filesystem>
 #include <unistd.h>
-
+#include <signal.h>
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -22,15 +22,14 @@ void command::set_is(istream* i){input = i;};
 void command::set_os(ostream* o){output = o;};
 void command::set_es(ostream* err){error = err;};
 
-minishell::minishell(vector<std::string> args){};
-
 int cd::execute(){
     if(arguments.size()<1){
         *error<<"Too few arguments\n";
         return -1;
     }
-    if(fs::is_directory(filesystem::current_path().string()+'/'+arguments.at(0))){
+    if(fs::is_directory(shell.env["PWD"]+'/'+arguments.at(0))){
         fs::current_path(filesystem::current_path().string()+'/'+arguments.at(0));
+        shell.env["PWD"] = fs::current_path().string();
     }else{
         *error<<arguments[0]<<" : is not a directory.\n";
     }
@@ -70,8 +69,59 @@ int sleep::execute(){
 
 int ps::execute(){
     *output<<"\tPID\tName\n";
-    for(auto p : shell->child_p){
+    for(auto p : shell.child_p){
         *output<<"\t"<<p.first<<"\t"<<p.second<<"\n";
+    }
+    return 0;
+}
+
+int bg::execute(){
+    if(arguments.size()<1){
+        *error<<"Too few arguments\n";
+        return -1;
+    }
+
+    for(auto n : arguments[0]){
+        if(!isdigit(n)){
+            *error<<"Invalid pid : "<<arguments[0]<<"\n";
+            return -1;
+        }
+    }
+
+    pid_t cpid = atoi(arguments.at(0).c_str());
+
+    if(shell.child_p.find(cpid)!=shell.child_p.end()){
+        kill(cpid, SIGCONT);
+    }else{
+        *error<<"Invalid pid : "<<arguments[0]<<"\n";
+        return -2;
+    }
+    return 0;
+}
+
+int fg::execute(){
+    if(arguments.size()<1){
+        *error<<"Too few arguments\n";
+        return -1;
+    }
+
+    for(auto n : arguments[0]){
+        if(!isdigit(n)){
+            *error<<"Invalid pid : "<<arguments[0]<<"\n";
+            return -1;
+        }
+    }
+
+    pid_t cpid = atoi(arguments.at(0).c_str());
+
+    if(shell.child_p.find(cpid)!=shell.child_p.end()){
+        shell.waiting = true;
+        shell.wait_pid = cpid;
+        int status;
+        waitpid(cpid, &status, WUNTRACED);
+    }else{
+        *error<<"Invalid pid : "<<arguments[0]<<"\n";
+        return -2;
     }
     return 0;
 }

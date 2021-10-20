@@ -5,7 +5,10 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 #define yyterminate() return( parse::Parser::token::END )
+
+#ifndef register
 #define register
+#endif
 
 #define STEP()                                      \
 do {                                              \

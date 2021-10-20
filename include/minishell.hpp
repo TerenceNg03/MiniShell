@@ -11,32 +11,30 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <thread>
 #include <list>
 #include <ostream>
-#include "process.hpp"
+#include <map>
 
 class minishell{
-    friend class command;
-
-private:
 
 public:
+    std::map<std::string,std::string> env;
     std::map<pid_t, std::string> child_p;
-
+    bool waiting;
+    pid_t wait_pid=-1;
     minishell(std::vector<std::string> args);
 };
 
 class command{
 
 protected:
+    minishell& shell;
     std::vector<std::string> arguments;
     std::istream* input = &std::cin;
     std::ostream* output = &std::cout;
     std::ostream* error = &std::cerr;
-    minishell* shell;
 public:
-    command(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):shell(&shell),arguments(args){};
+    command(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):shell(shell),arguments(args){};
     virtual int execute(){*error<<"Empty command executed.\n";return -1;};
     virtual std::string get_name(){return "Empty command";};
     void set_args(std::vector<std::string> args);
@@ -88,5 +86,23 @@ public:
 
     virtual int execute();
     virtual std::string get_name(){return "ps";};
+};
+
+class bg:public command{
+public:
+
+    bg(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "bg";};
+};
+
+class fg:public command{
+public:
+
+    fg(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "fg";};
 };
 #endif /* minishell_hpp */

@@ -1,25 +1,35 @@
+export
+
 CC = g++
-FLAGS = -IOBJ -Ibuilt-in -Wno-unused-value -Wno-deprecated-register -std=c++17 -g
-CFLAGS = -Wall -g
+CFLAG = -std=c++17 -Wall
+INCLUDE = -I$(shell pwd)/include
+DEFINE = -Dregister
+FLAGS = ${CFLAG} ${INCLUDE} ${DEFINE}
 
-all: lex shell
-	$(CC) $(FLAGS) -c driver.cc -o OBJ/driver.o
-	$(CC) $(FLAGS) -c main.cpp -o OBJ/main.o
-	$(CC) $(FLAGS) OBJ/*.o -o minishell
+LD = ld
+LFLAGS = -r
 
-lex: dir
-	yacc -d -Wno-yacc parser.y -o OBJ/y.tab.cc
-	lex -o OBJ/lex.yy.cc scanner.l
-	$(CC) $(FLAGS) -c OBJ/y.tab.cc -o OBJ/parser.o
-	$(CC) $(FLAGS) -c OBJ/lex.yy.cc -o OBJ/scanner.o
-shell:
-	$(CC) $(FLAGS) -c built-in/minishell.cpp -o OBJ/minishell.o
+RM = -@rm -f
 
-dir:
-	[ -d OBJ ] || mkdir OBJ
-	[ -d bin ] || mkdir bin
+all: 
+	${MAKE} -C lex lex.o
+	${MAKE} -C shell shell.o
+	@mkdir -p bin/
+	${CC} ${CFLAGS} main.o lex/lex.o shell/shell.o -o bin/minishell
+	@ln -f bin/minishell ./minishell
+
+
+
+main.o: main.cpp
+	${CC} ${FLAGS} -c main.cpp
+
+bin/: bin/
+	mkdir bin
+
 
 clean:
-	rm -rf ./OBJ
-	rm -rf ./bin/minishell
-	rm minishell
+	${MAKE} -C lex clean
+	${MAKE} -C shell clean
+	${RM} *.o
+	${RM} bin/* bin/*.*
+	${RM} minishell

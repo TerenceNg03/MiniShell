@@ -19,6 +19,7 @@
     #include <memory>
     #include <unistd.h>
     #include <signal.h>
+    #include <sys/wait.h>
 }
 
 %code provides
@@ -60,7 +61,7 @@
 
 %%
 
-CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::current_path().filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"myshell "<<fs::current_path().filename().string()<<" $ ";};
+    CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"myshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";};
 
 
 CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
@@ -87,22 +88,44 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
         }
 
     }
-    if($4){
-        pid_t ppid = getpid();
+
+    if(!$4){
+        $1->execute();
+    }else{
         pid_t pid = fork();
         if(pid==-1){
             std::cerr<<"Error : Unable create new process.\n";
             return -1;
         }else if(pid==0){
+            signal(SIGTSTP,SIG_DFL);
             int ret = $1->execute();
-            _exit(ret);
+            exit(ret);
         }else{
             shell.child_p[pid] = $1->get_name();
         }
-
-    }else{
-        $1->execute();
     }
+
+//    pid_t pid = fork();
+//    if(!$4) shell.waiting = true;
+//    if(pid==-1){
+//        std::cerr<<"Error : Unable create new process.\n";
+//        return -1;
+//    }else if(pid==0){
+//        signal(SIGTSTP,SIG_DFL);
+//        int ret = $1->execute();
+//        exit(ret);
+//    }else{
+//        shell.child_p[pid] = $1->get_name();
+//        int status;
+//        WEXITSTATUS(status);
+//        if(!$4){
+//            shell.wait_pid = pid;
+//            waitpid(pid,&status,WUNTRACED);
+//            shell.waiting = false;
+//            shell.wait_pid = -1;
+//        }
+//    }
+
 
 
     if($1)delete $1;
@@ -110,19 +133,25 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
     if(o)delete o;
 }
 
-| BIN ARGUMENTS REDIRECTION BACKGROUND | _EOF {std::cout<<"\n\n[Process Terminated By EOF]\n\n";YYACCEPT;};
+| BIN ARGUMENTS REDIRECTION BACKGROUND
+{
+    
+}
+
+| _EOF {std::cout<<"\n\n[Process Terminated By EOF]\n\n";YYACCEPT;};
+| error
 
 /* built-in functions */
 BUILT_IN :
 
-BG {$$=new command(shell);}
+BG {$$=new bg(shell);}
 | CD {$$=new cd(shell);}
 | CLR {$$=new clr(shell);}
 | LS {$$=new ls(shell);}
 | _ECHO {$$=new command(shell);}
 | EXEC {$$=new command(shell);}
 | EXIT {std::cout<<"\n[Process Quited]\n\n";YYACCEPT;}
-| FG {$$=new command(shell);}
+| FG {$$=new fg(shell);}
 | MAN {$$=new command(shell);}
 | PS {$$=new ps(shell);}
 | SET {$$=new command(shell);}
