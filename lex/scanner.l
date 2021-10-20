@@ -56,10 +56,13 @@ unset return parse::Parser::token::UNSET;
 [1-2]">" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_O;
 [0]"<" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_I;
 
-[\'\"].*[\'\"] yylval->build(std::string(yytext));
-[a-zA-Z0-9\-\./]{1,} yylval->build(std::string(yytext));return parse::Parser::token::NAME;
+[\'\"].*[\'\"]  yytext[strlen(yytext)-1] = '\0';yylval->build(std::string(yytext+1));return parse::Parser::token::STR;
+
+[a-zA-Z0-9\-\./~]{1,} yylval->build(std::string(yytext));return parse::Parser::token::NAME;
+
 "&" return parse::Parser::token::BACK;
 "|" return parse::Parser::token::PIPE;
+"=" return parse::Parser::token::ASSIGN;
 
 \n return parse::Parser::token::NEWLINE;
 <<EOF>> return parse::Parser::token::_EOF;

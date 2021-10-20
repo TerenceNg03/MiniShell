@@ -46,25 +46,25 @@
 %language "c++"
 %define api.value.type variant
 
-%token BG CD _ECHO EXEC EXIT FG PS SET SHIFT TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
+%token BG CD _ECHO EXEC EXIT FG PS SET SHIFT TEST TIME UNMASK UNSET UNKNOWN
+%token NEWLINE BACK PIPE ASSIGN
 %token <int> RD_O_AP RD_I RD_O
 %token _EOF
-%token <std::string> NAME
+%token <std::string> NAME STR
 
 %type CMDS
 %type<command*> BUILT_IN
 %type<std::vector<std::tuple<int,int,std::string>>> REDIRECTION
 %type<std::vector<std::string>> ARGUMENTS
 %type<std::string> BIN
-%type<bool> BACKGROUND;
 %type<std::pair<int,int>> RD_OP;
 
 %%
 
-CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"myshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";};
+CMDS :  /*empty*/{std::cout<<"\nMyshell By Terence Ng\n\nminishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"minishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";};
 
 
-CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
+CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
 {
     $1->set_args($2);
     std::ifstream* i;
@@ -89,20 +89,16 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
 
     }
 
-    if(!$4){
-        $1->execute();
+    pid_t pid = fork();
+    if(pid==-1){
+        std::cerr<<"Error : Unable create new process.\n";
+        return -1;
+    }else if(pid==0){
+        signal(SIGTSTP,SIG_DFL);
+        int ret = $1->execute();
+        exit(ret);
     }else{
-        pid_t pid = fork();
-        if(pid==-1){
-            std::cerr<<"Error : Unable create new process.\n";
-            return -1;
-        }else if(pid==0){
-            signal(SIGTSTP,SIG_DFL);
-            int ret = $1->execute();
-            exit(ret);
-        }else{
-            shell.child_p[pid] = $1->get_name();
-        }
+        shell.child_p[pid] = $1->get_name();
     }
 
     if($1)delete $1;
@@ -110,10 +106,71 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
     if(o)delete o;
 }
 
-| BIN ARGUMENTS REDIRECTION BACKGROUND
+|BUILT_IN ARGUMENTS REDIRECTION
+{
+    $1->set_args($2);
+    std::ifstream* i;
+    std::ofstream* o;
+    for(auto rd:$3){
+        switch(std::get<1>(rd)){
+            case 0:
+            i = new std::ifstream(std::get<2>(rd));break;
+            case 1:
+            o = new std::ofstream(std::get<2>(rd),std::ios_base::trunc);break;
+            case 2:
+            o = new std::ofstream(std::get<2>(rd),std::ios_base::app);break;
+        }
+        switch(std::get<0>(rd)){
+            case 0:
+            $1->set_is((std::istream*)i);break;
+            case 1:
+            $1->set_os((std::ostream*)o);break;
+            case 2:
+            $1->set_es((std::ostream*)o);break;
+        }
+
+    }
+
+    $1->execute();
+
+    if($1)delete $1;
+    if(i)delete i;
+    if(o)delete o;
+}
+
+
+| BIN ARGUMENTS REDIRECTION BACK CMD
 {
     if($1!=""){
-        if(!$4) shell.waiting = true;
+        pid_t pid = fork();
+
+        if(pid==-1){
+            std::cerr<<"Error : Unable create new process.\n";
+        }else if(pid==0){
+
+            signal(SIGTSTP,SIG_DFL);
+            signal(SIGCHLD,SIG_DFL);
+
+            std::vector<const char*> argv;
+            argv.push_back($1.c_str());
+            for(int i=0; i<$2.size(); i++){
+                argv.push_back($2[i].c_str());
+            }
+            argv.push_back(nullptr);
+
+            int ret = execv($1.c_str(),(char *const *)&argv[0]);
+            std::cerr<<"Exec Failed with Error Code  "<<errno<<"\n";
+            exit(ret);
+        }else{
+            shell.child_p[pid] = fs::path($1).filename().string();
+        }
+    }
+}
+
+| BIN ARGUMENTS REDIRECTION
+{
+    if($1!=""){
+        shell.waiting = true;
         pid_t pid = fork();
 
         if(pid==-1){
@@ -136,17 +193,16 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
         }else{
             shell.child_p[pid] = fs::path($1).filename().string();
             int status;
-            if(!$4){
-                shell.wait_pid = pid;
-                waitpid(pid,&status,WUNTRACED);
-                shell.waiting = false;
-                shell.wait_pid = -1;
-            }
+            shell.wait_pid = pid;
+            waitpid(pid,&status,WUNTRACED);
+            shell.waiting = false;
+            shell.wait_pid = -1;
         }
     }
 }
 
-| _EOF {std::cout<<"\n\n[Process Terminated By EOF]\n\n";YYACCEPT;};
+
+| _EOF {std::cout<<"\n\n[Shell Terminated By EOF]\n\n";YYACCEPT;};
 | error
 
 /* built-in functions */
@@ -156,7 +212,7 @@ BG {$$=new bg(shell);}
 | CD {$$=new cd(shell);}
 | _ECHO {$$=new command(shell);}
 | EXEC {$$=new command(shell);}
-| EXIT {std::cout<<"\n[Process Quited]\n\n";YYACCEPT;}
+| EXIT {std::cout<<"\n[Shell Terminated by Exit]\n\n";YYACCEPT;}
 | FG {$$=new fg(shell);}
 | PS {$$=new ps(shell);}
 | SET {$$=new command(shell);}
@@ -174,6 +230,7 @@ BIN : NAME
     auto paths = shell.get_paths();
     bool found = false;
 
+    //search all search path
     for(auto path : paths){
         if(fs::exists(fs::path(path+"/"+$1))){
             $$=fs::path(path+"/"+$1).string();
@@ -182,8 +239,15 @@ BIN : NAME
         }
     }
 
+    //execute from path
+    fs::path abs_path = shell.resolve_path($1);
+    if(fs::exists(fs::path(abs_path))){
+        $$=fs::path(abs_path).string();
+        found = true;
+    }
+
     if(!found){
-        std::cout<<$1<<" command not found.\n";
+        std::cout<<$1<<" is neither a command nor a executable file.\n";
         $$="";
     }
 
@@ -203,10 +267,6 @@ REDIRECTION :  /* empty */{$$ = std::vector<std::tuple<int,int,std::string>>();}
 };
 
 RD_OP : RD_I {$$ = std::make_pair($1,0);} | RD_O {$$ = std::make_pair($1,1);} | RD_O_AP {$$ = std::make_pair($1,2);};
-
-/* background */
-
-BACKGROUND : {$$ = false;} | BACK {$$ = true;};
 
 %%
 

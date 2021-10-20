@@ -14,6 +14,7 @@
 #include <list>
 #include <ostream>
 #include <map>
+#include <filesystem>
 
 class minishell{
 
@@ -22,7 +23,9 @@ public:
     std::map<pid_t, std::string> child_p;
     bool waiting;
     pid_t wait_pid=-1;
+
     minishell(std::vector<std::string> args);
+    std::filesystem::path resolve_path(std::string s);
     std::vector<std::string> get_paths();
 };
 

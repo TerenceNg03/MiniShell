@@ -1,12 +1,3 @@
-UNAME := ${shell uname}
-
-ifeq ($(UNAME), Darwin)
-	YACC = /usr/local/Cellar/bison/3.8.2/bin/yacc
-	#OSX use an outdated bison by default. Change this to your install path.
-else
-	YACC = yacc
-endif
-
 .PHONY: clean
 
 lex.o: scanner.o parser.o driver.o

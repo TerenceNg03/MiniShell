@@ -27,8 +27,10 @@ int cd::execute(){
         *error<<"Too few arguments\n";
         return -1;
     }
-    if(fs::is_directory(shell.env["PWD"]+'/'+arguments.at(0))){
-        fs::current_path(filesystem::current_path().string()+'/'+arguments.at(0));
+
+    fs::path p = shell.resolve_path(arguments.at(0));
+    if(fs::is_directory(p)){
+        fs::current_path(p);
         shell.env["PWD"] = fs::current_path().string();
     }else{
         *error<<arguments[0]<<" : is not a directory.\n";
