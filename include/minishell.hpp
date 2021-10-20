@@ -53,14 +53,6 @@ public:
     virtual std::string get_name(){return "cd";};
 };
 
-class clr:public command{
-public:
-
-    clr(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
-
-    virtual int execute();
-    virtual std::string get_name(){return "clear";};
-};
 
 class ps:public command{
 public:

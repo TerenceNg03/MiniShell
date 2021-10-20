@@ -40,12 +40,10 @@ COL(yyleng);
 
 bg return parse::Parser::token::BG;
 cd return parse::Parser::token::CD;
-clear return parse::Parser::token::CLR;
 echo return parse::Parser::token::_ECHO;
 exec return parse::Parser::token::EXEC;
 exit return parse::Parser::token::EXIT;
 fg return parse::Parser::token::FG;
-man return parse::Parser::token::MAN;
 ps return parse::Parser::token::PS;
 set return parse::Parser::token::SET;
 shift return parse::Parser::token::SHIFT;

@@ -1,6 +1,6 @@
 export
 
-CC = g++
+CC = clang++
 CFLAG = -std=c++17 -Wall
 INCLUDE = -I$(shell pwd)/include
 DEFINE = -Dregister
@@ -35,6 +35,7 @@ main.o: main.cpp
 clean:
 	${MAKE} -C lex clean
 	${MAKE} -C shell clean
+	${MAKE} -C external clean
 	${RM} *.o
 	${RM} bin/* bin/*.*
 	${RM} minishell

@@ -38,7 +38,6 @@ void suspend_handler(int sig, siginfo_t *info, void *context){
 }
 
 int main(int argc, const char * argv[]) {
-    std::ios::sync_with_stdio(false);
 
     //setup driver
     parse::Driver driver(vector<string>(argv,argv+argc));

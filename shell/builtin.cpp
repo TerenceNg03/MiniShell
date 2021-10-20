@@ -36,11 +36,6 @@ int cd::execute(){
     return 0;
 }
 
-int clr::execute(){
-    *output<<"\033[2J\033[1;1H";
-    return 0;
-}
-
 int ps::execute(){
     *output<<"\tPID\tName\n";
     for(auto p : shell.child_p){

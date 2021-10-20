@@ -46,7 +46,7 @@
 %language "c++"
 %define api.value.type variant
 
-%token BG CD CLR _ECHO EXEC EXIT FG MAN PS SET SHIFT TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
+%token BG CD _ECHO EXEC EXIT FG PS SET SHIFT TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
 %token <int> RD_O_AP RD_I RD_O
 %token _EOF
 %token <std::string> NAME
@@ -61,7 +61,7 @@
 
 %%
 
-    CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"myshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";};
+CMDS :  /*empty*/{std::cout<<"\nMyshell By Adam Wu\n\nmyshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"myshell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";};
 
 
 CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
@@ -105,29 +105,6 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
         }
     }
 
-//    pid_t pid = fork();
-//    if(!$4) shell.waiting = true;
-//    if(pid==-1){
-//        std::cerr<<"Error : Unable create new process.\n";
-//        return -1;
-//    }else if(pid==0){
-//        signal(SIGTSTP,SIG_DFL);
-//        int ret = $1->execute();
-//        exit(ret);
-//    }else{
-//        shell.child_p[pid] = $1->get_name();
-//        int status;
-//        WEXITSTATUS(status);
-//        if(!$4){
-//            shell.wait_pid = pid;
-//            waitpid(pid,&status,WUNTRACED);
-//            shell.waiting = false;
-//            shell.wait_pid = -1;
-//        }
-//    }
-
-
-
     if($1)delete $1;
     if(i)delete i;
     if(o)delete o;
@@ -136,8 +113,8 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
 | BIN ARGUMENTS REDIRECTION BACKGROUND
 {
     if($1!=""){
-        pid_t pid = fork();
         if(!$4) shell.waiting = true;
+        pid_t pid = fork();
 
         if(pid==-1){
             std::cerr<<"Error : Unable create new process.\n";
@@ -151,14 +128,14 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
             for(int i=0; i<$2.size(); i++){
                 argv.push_back($2[i].c_str());
             }
+            argv.push_back(nullptr);
 
-            int ret = execvp($1.c_str(),(char *const *)&argv[0]);
-
+            int ret = execv($1.c_str(),(char *const *)&argv[0]);
+            std::cerr<<"Exec Failed with Error Code  "<<errno<<"\n";
             exit(ret);
         }else{
             shell.child_p[pid] = fs::path($1).filename().string();
             int status;
-            WEXITSTATUS(status);
             if(!$4){
                 shell.wait_pid = pid;
                 waitpid(pid,&status,WUNTRACED);
@@ -177,12 +154,10 @@ BUILT_IN :
 
 BG {$$=new bg(shell);}
 | CD {$$=new cd(shell);}
-| CLR {$$=new clr(shell);}
 | _ECHO {$$=new command(shell);}
 | EXEC {$$=new command(shell);}
 | EXIT {std::cout<<"\n[Process Quited]\n\n";YYACCEPT;}
 | FG {$$=new fg(shell);}
-| MAN {$$=new command(shell);}
 | PS {$$=new ps(shell);}
 | SET {$$=new command(shell);}
 | SHIFT {$$=new command(shell);}
@@ -201,7 +176,7 @@ BIN : NAME
 
     for(auto path : paths){
         if(fs::exists(fs::path(path+"/"+$1))){
-            $$=path+"/"+$1;
+            $$=fs::path(path+"/"+$1).string();
             found = true;
             break;
         }
