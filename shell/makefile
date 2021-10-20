@@ -1,3 +1,5 @@
+.PHONY: clean
+
 shell.o: minishell.o builtin.o
 
 	${LD} ${LFLAGS} minishell.o builtin.o -o shell.o

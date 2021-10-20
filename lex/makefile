@@ -7,6 +7,8 @@ else
 	YACC = yacc
 endif
 
+.PHONY: clean
+
 lex.o: scanner.o parser.o driver.o
 	
 	${LD} ${LFLAGS} scanner.o parser.o driver.o -o lex.o

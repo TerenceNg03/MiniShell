@@ -23,6 +23,7 @@ public:
     bool waiting;
     pid_t wait_pid=-1;
     minishell(std::vector<std::string> args);
+    std::vector<std::string> get_paths();
 };
 
 class command{
@@ -59,24 +60,6 @@ public:
 
     virtual int execute();
     virtual std::string get_name(){return "clear";};
-};
-
-class ls:public command{
-public:
-
-    ls(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
-
-    virtual int execute();
-    virtual std::string get_name(){return "ls";};
-};
-
-class sleep:public command{
-public:
-
-    sleep(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
-
-    virtual int execute();
-    virtual std::string get_name(){return "sleep";};
 };
 
 class ps:public command{

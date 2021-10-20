@@ -20,5 +20,13 @@ minishell::minishell(std::vector<std::string> args){
     child_p[pid] = "minishell";
 
     env["PWD"] = fs::current_path();
+    env["PATH"] = fs::current_path().string()+"/bin";
 }
 
+vector<string> minishell::get_paths(){
+    string paths = env["PATH"];
+    regex re(":");
+    std::sregex_token_iterator first{paths.begin(), paths.end(), re, -1},
+    last;
+    return {first, last};
+}

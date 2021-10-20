@@ -46,7 +46,7 @@
 %language "c++"
 %define api.value.type variant
 
-%token BG CD CLR LS _ECHO EXEC EXIT FG MAN PS SET SHIFT SLEEP TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
+%token BG CD CLR _ECHO EXEC EXIT FG MAN PS SET SHIFT TEST TIME UNMASK UNSET NEWLINE BACK PIPE UNKNOWN
 %token <int> RD_O_AP RD_I RD_O
 %token _EOF
 %token <std::string> NAME
@@ -135,7 +135,38 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACKGROUND
 
 | BIN ARGUMENTS REDIRECTION BACKGROUND
 {
-    
+    if($1!=""){
+        pid_t pid = fork();
+        if(!$4) shell.waiting = true;
+
+        if(pid==-1){
+            std::cerr<<"Error : Unable create new process.\n";
+        }else if(pid==0){
+
+            signal(SIGTSTP,SIG_DFL);
+            signal(SIGCHLD,SIG_DFL);
+
+            std::vector<const char*> argv;
+            argv.push_back($1.c_str());
+            for(int i=0; i<$2.size(); i++){
+                argv.push_back($2[i].c_str());
+            }
+
+            int ret = execvp($1.c_str(),(char *const *)&argv[0]);
+
+            exit(ret);
+        }else{
+            shell.child_p[pid] = fs::path($1).filename().string();
+            int status;
+            WEXITSTATUS(status);
+            if(!$4){
+                shell.wait_pid = pid;
+                waitpid(pid,&status,WUNTRACED);
+                shell.waiting = false;
+                shell.wait_pid = -1;
+            }
+        }
+    }
 }
 
 | _EOF {std::cout<<"\n\n[Process Terminated By EOF]\n\n";YYACCEPT;};
@@ -147,7 +178,6 @@ BUILT_IN :
 BG {$$=new bg(shell);}
 | CD {$$=new cd(shell);}
 | CLR {$$=new clr(shell);}
-| LS {$$=new ls(shell);}
 | _ECHO {$$=new command(shell);}
 | EXEC {$$=new command(shell);}
 | EXIT {std::cout<<"\n[Process Quited]\n\n";YYACCEPT;}
@@ -156,7 +186,6 @@ BG {$$=new bg(shell);}
 | PS {$$=new ps(shell);}
 | SET {$$=new command(shell);}
 | SHIFT {$$=new command(shell);}
-| SLEEP {$$=new class sleep(shell);}
 | TEST {$$=new command(shell);}
 | TIME {$$=new command(shell);}
 | UNMASK {$$=new command(shell);}
@@ -167,8 +196,22 @@ BG {$$=new bg(shell);}
 
 BIN : NAME
 {
-    $$ = $1;
-    std::cout<<$1<<"\n";
+    auto paths = shell.get_paths();
+    bool found = false;
+
+    for(auto path : paths){
+        if(fs::exists(fs::path(path+"/"+$1))){
+            $$=path+"/"+$1;
+            found = true;
+            break;
+        }
+    }
+
+    if(!found){
+        std::cout<<$1<<" command not found.\n";
+        $$="";
+    }
+
 };
 
 /* arguments */
