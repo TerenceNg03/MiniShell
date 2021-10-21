@@ -40,6 +40,7 @@ public:
     command(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):shell(shell),arguments(args){};
     virtual int execute(){*error<<"Empty command executed.\n";return -1;};
     virtual std::string get_name(){return "Empty command";};
+    virtual ~command(){};
     void set_args(std::vector<std::string> args);
     void set_is(std::istream* i);
     void set_os(std::ostream* o);
@@ -89,5 +90,14 @@ public:
 
     virtual int execute();
     virtual std::string get_name(){return "unset";};
+};
+
+class echo:public command{
+public:
+
+    echo(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "echo";};
 };
 #endif /* minishell_hpp */

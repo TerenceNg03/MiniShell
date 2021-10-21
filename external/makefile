@@ -1,14 +1,8 @@
-.PHONY: all ls sleep clean clear
+.PHONY: all
 
-all: ls sleep clear
-
-ls:
+all:
 	${MAKE} -C ls ${BIN}/ls
-
-sleep:
 	${MAKE} -C sleep ${BIN}/sleep
-
-clear:
 	${MAKE} -C clear ${BIN}/clear
 
 clean:

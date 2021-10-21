@@ -13,20 +13,16 @@ RM = -@rm -f
 
 BIN = $(shell pwd)/bin
 
-.PHONY:  all lex shell external clean
+.PHONY:  all subdirs
 
-all: main.o lex shell external
+all: main.o subdirs
 	@mkdir -p ${BIN} 
 	${CC} ${CFLAGS} main.o lex/lex.o shell/shell.o -o ${BIN}/minishell
 	@ln -f bin/minishell ./minishell
 
-lex:
+subdirs:
 	${MAKE} -C lex lex.o
-
-shell:
 	${MAKE} -C shell shell.o
-
-external:
 	${MAKE} -C external all
 
 main.o: main.cpp
@@ -37,5 +33,5 @@ clean:
 	${MAKE} -C shell clean
 	${MAKE} -C external clean
 	${RM} *.o
-	${RM} bin/* bin/*.*
+	${RM} bin/minishell
 	${RM} minishell

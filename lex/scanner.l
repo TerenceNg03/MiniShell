@@ -55,9 +55,14 @@ unset return parse::Parser::token::UNSET;
 [1-2]">" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_O;
 [0]"<" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_I;
 
-[\'\"].*[\'\"]  yytext[strlen(yytext)-1] = '\0';yylval->build(std::string(yytext+1));return parse::Parser::token::STR;
+[\'\"].*[\'\"]  yylval->build(std::string(yytext));return parse::Parser::token::STR;
 
-[a-zA-Z0-9\-\./~]{1,} yylval->build(std::string(yytext));return parse::Parser::token::NAME;
+[a-zA-Z0-9\-\+]{1,} yylval->build(std::string(yytext));return parse::Parser::token::ID;
+
+"$"[a-zA-Z0-9\-]+ yylval->build(std::string(yytext+1));return parse::Parser::token::VAR;
+
+[a-zA-Z0-9\-\./~\+]{1,} yylval->build(std::string(yytext));return parse::Parser::token::_PATH;
+
 
 "&" return parse::Parser::token::BACK;
 "|" return parse::Parser::token::PIPE;
@@ -66,7 +71,7 @@ unset return parse::Parser::token::UNSET;
 \n return parse::Parser::token::NEWLINE;
 <<EOF>> return parse::Parser::token::_EOF;
 [ \t]+ /* ignore whitespace */
-. return parse::Parser::token::UNKNOWN;
+. yylval->build(std::string(yytext)); return parse::Parser::token::UNKNOWN;
 
 %%
 

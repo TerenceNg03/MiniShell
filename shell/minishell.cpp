@@ -37,9 +37,5 @@ std::filesystem::path minishell::resolve_path(std::string s){
     if(s.size()>0&&s[0]=='~'){
         s = env["HOME"] + s.substr(1,s.size());
     }
-    if(fs::path(s).is_relative()){
-        return fs::path(env["PWD"]+"/"+s);
-    }else{
-        return fs::path(s);
-    }
+    return fs::path(s);
 }

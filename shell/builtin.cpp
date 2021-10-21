@@ -113,3 +113,22 @@ int unset::execute(){
     return 0;
 }
 
+
+int echo::execute(){
+    regex re("[\'\"].*[\'\"]");
+    bool flag = true;
+    for(auto arg : arguments){
+        if(regex_match(arg, re)){
+            *output<<arg.substr(1,arg.size()-1);
+        }else{
+            *output<<arg;
+        }
+        if(flag){
+            *output<<" ";
+            flag = false;
+        }
+    }
+    *output<<"\n";
+    return 0;
+}
+

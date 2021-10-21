@@ -50,9 +50,10 @@
 %token NEWLINE BACK PIPE ASSIGN
 %token <int> RD_O_AP RD_I RD_O
 %token _EOF
-%token <std::string> NAME STR
+%token <std::string> VAR STR ID _PATH
 
 %type CMDS
+%type<std::string> NAME PATH
 %type<command*> BUILT_IN
 %type<std::vector<std::tuple<int,int,std::string>>> REDIRECTION
 %type<std::vector<std::string>> ARGUMENTS
@@ -204,7 +205,7 @@ BUILT_IN :
 
 BG {$$=new bg(shell);}
 | CD {$$=new cd(shell);}
-| _ECHO {$$=new command(shell);}
+| _ECHO {$$=new echo(shell);}
 | EXEC {$$=new command(shell);}
 | EXIT {std::cout<<"\n[Shell Terminated by Exit]\n\n";YYACCEPT;}
 | FG {$$=new fg(shell);}
@@ -218,7 +219,7 @@ BG {$$=new bg(shell);}
 
 ;
 
-BIN : NAME
+BIN : ID
 {
     auto paths = shell.get_paths();
     bool found = false;
@@ -232,22 +233,41 @@ BIN : NAME
         }
     }
 
-    //execute from path
-    fs::path abs_path = shell.resolve_path($1);
-    if(fs::exists(fs::path(abs_path))){
-        $$=fs::path(abs_path).string();
-        found = true;
-    }
 
     if(!found){
-        std::cout<<$1<<" is neither a command nor a executable file.\n";
+        std::cerr<<$1<<" command not found.\n";
         $$="";
     }
 
 };
+| PATH
+{
+    bool found = false;
+
+    //execute from path
+    if(fs::exists(fs::path($1))){
+        $$=fs::path($1).string();
+        found = true;
+    }
+
+    if(!found){
+        std::cerr<<$1<<" : No such file or directory.\n";
+        $$="";
+    }else{
+
+        auto p = fs::status($1).permissions();
+        bool perm_x =((p & fs::perms::owner_exec) != fs::perms::none)|| ((p & fs::perms::group_exec) != fs::perms::none)|| ((p & fs::perms::others_exec) != fs::perms::none);
+
+        if(!perm_x){
+            std::cerr<<$1<<" : Permission denied.\n";
+            $$ = "";
+        }
+    }
+}
 
 /* arguments */
-ARGUMENTS : {$$ = std::vector<std::string>();} | ARGUMENTS NAME {std::swap($$, $1);$$.push_back($2);};
+ARGUMENTS : {$$ = std::vector<std::string>();}
+| ARGUMENTS NAME {std::swap($$, $1);$$.push_back($2);};
 
 /* redirection */
 
@@ -261,6 +281,35 @@ REDIRECTION :  /* empty */{$$ = std::vector<std::tuple<int,int,std::string>>();}
 
 RD_OP : RD_I {$$ = std::make_pair($1,0);} | RD_O {$$ = std::make_pair($1,1);} | RD_O_AP {$$ = std::make_pair($1,2);};
 
+//resolve name
+
+NAME : VAR
+{
+    if(shell.env.count($1)){
+        $$ = shell.env[$1];
+    }else{
+        $$ = "";
+    }
+}
+| STR
+{
+    $$ = $1.substr(1,$1.size()-2);
+}
+| ID
+{
+    $$ = $1;
+}
+| PATH
+{
+    $$ = $1;
+}
+
+//reslove PATHa
+
+PATH : _PATH
+{
+    $$ = shell.resolve_path($1).string();
+}
 %%
 
 namespace parse
