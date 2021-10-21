@@ -28,6 +28,8 @@ COL(yyleng);
 
 #define yywrap() 1
 
+extern bool interrupted;
+
 %}
 
 %option noinput nounput 8bit nodefault
@@ -55,7 +57,7 @@ unset return parse::Parser::token::UNSET;
 [1-2]">" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_O;
 [0]"<" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_I;
 
-[\'\"].*[\'\"]  yylval->build(std::string(yytext));return parse::Parser::token::STR;
+[\'\"][.\\]*[\'\"]  yylval->build(std::string(yytext));return parse::Parser::token::STR;
 
 [a-zA-Z0-9\-\+]{1,} yylval->build(std::string(yytext));return parse::Parser::token::ID;
 
@@ -69,7 +71,9 @@ unset return parse::Parser::token::UNSET;
 "=" return parse::Parser::token::ASSIGN;
 
 \n return parse::Parser::token::NEWLINE;
-<<EOF>> return parse::Parser::token::_EOF;
+
+    /*SIGINT also cause EOF need to recover from this*/
+    <<EOF>> if(interrupted){interrupted = false;unput('\n');putchar('\n');}else{unput('t');unput('i');unput('x');unput('e');}
 [ \t]+ /* ignore whitespace */
 . yylval->build(std::string(yytext)); return parse::Parser::token::UNKNOWN;
 

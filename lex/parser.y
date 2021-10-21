@@ -49,7 +49,7 @@
 %token BG CD _ECHO EXEC EXIT FG SET SHIFT TEST TIME UNMASK UNSET UNKNOWN
 %token NEWLINE BACK PIPE ASSIGN
 %token <int> RD_O_AP RD_I RD_O
-%token _EOF
+%token _EOF END
 %token <std::string> VAR STR ID _PATH
 
 %type CMDS
@@ -62,7 +62,13 @@
 
 %%
 
-CMDS :  /*empty*/{std::cout<<"\nMyshell By Terence Ng\n\nminishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}|CMDS CMD NEWLINE {std::cout<<"minishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";};
+CMDS :  /*empty*/{std::cout<<"\nMyshell By Terence Ng\n\nminishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}
+|CMDS CMD NEWLINE
+{
+
+    std::cout<<"minishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";
+
+};
 
 
 CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
@@ -195,9 +201,6 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
         }
     }
 }
-
-
-| _EOF {std::cout<<"\n\n[Shell Terminated By EOF]\n\n";YYACCEPT;};
 | error
 
 /* built-in functions */
@@ -207,7 +210,7 @@ BG {$$=new bg(shell);}
 | CD {$$=new cd(shell);}
 | _ECHO {$$=new echo(shell);}
 | EXEC {$$=new command(shell);}
-| EXIT {std::cout<<"\n[Shell Terminated by Exit]\n\n";YYACCEPT;}
+| EXIT {std::cout<<"\n\n[ Shell EXITED ]\n\n";YYACCEPT;}
 | FG {$$=new fg(shell);}
 | SET {$$=new set(shell);}
 | SHIFT {$$=new command(shell);}
