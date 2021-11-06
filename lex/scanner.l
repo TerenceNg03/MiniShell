@@ -72,6 +72,7 @@ jobs return parse::Parser::token::JOBS;
 "<" return parse::Parser::token::LESSER;
 ">>" return parse::Parser::token::RIGHT_SHIFT;
 "<<" return parse::Parser::token::LEFT_SHIFT;
+";" return parse::Parser::token::SEMICOLON;
 
 
 \n return parse::Parser::token::NEWLINE;
