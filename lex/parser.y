@@ -20,10 +20,13 @@
     #include <unistd.h>
     #include <signal.h>
     #include <sys/wait.h>
+    #include "job.hpp"
+
 }
 
 %code provides
 {
+
     namespace parse
     {
         // Forward declaration of the Driver class
@@ -35,6 +38,7 @@
             std::cout << msg << "\n";
         }
     }
+
 }
 
 %locations
@@ -46,27 +50,30 @@
 %language "c++"
 %define api.value.type variant
 
-%token BG CD _ECHO EXEC EXIT FG SET SHIFT TEST TIME UNMASK UNSET UNKNOWN
-%token NEWLINE BACK PIPE ASSIGN
-%token <int> RD_O_AP RD_I RD_O
+%token BG CD _ECHO EXEC EXIT FG SET SHIFT TEST TIME UNMASK UNSET JOBS UNKNOWN
+%token NEWLINE BACK PIPE ASSIGN GREATER LESSER RIGHT_SHIFT LEFT_SHIFT
+%token <int> NUM
 %token _EOF END
 %token <std::string> VAR STR ID _PATH
 
 %type CMDS
-%type<std::string> NAME PATH
-%type<command*> BUILT_IN
-%type<std::vector<std::tuple<int,int,std::string>>> REDIRECTION
-%type<std::vector<std::string>> ARGUMENTS
-%type<std::string> BIN
-%type<std::pair<int,int>> RD_OP;
+%type <std::string> NAME PATH
+%type <command*> BUILT_IN
+%type <fd3> REDIRECTION
+%type <std::vector<std::string>> ARGUMENTS
+%type <std::string> BIN
 
 %%
 
-CMDS :  /*empty*/{std::cout<<"\nMyshell By Terence Ng\n\nminishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";}
+CMDS :  /*empty*/
+{
+    printf("minishell %s $ ",fs::path(shell.env["PWD"]).filename().string().c_str());
+
+}
 |CMDS CMD NEWLINE
 {
 
-    std::cout<<"minishell "<<fs::path(shell.env["PWD"]).filename().string()<<" $ ";
+    printf("minishell %s $ ",fs::path(shell.env["PWD"]).filename().string().c_str());
 
 };
 
@@ -74,31 +81,9 @@ CMDS :  /*empty*/{std::cout<<"\nMyshell By Terence Ng\n\nminishell "<<fs::path(s
 CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
 {
     $1->set_args($2);
-    std::ifstream* i;
-    std::ofstream* o;
-    for(auto rd:$3){
-        switch(std::get<1>(rd)){
-            case 0:
-            i = new std::ifstream(std::get<2>(rd));break;
-            case 1:
-            o = new std::ofstream(std::get<2>(rd),std::ios_base::trunc);break;
-            case 2:
-            o = new std::ofstream(std::get<2>(rd),std::ios_base::app);break;
-        }
-        switch(std::get<0>(rd)){
-            case 0:
-            $1->set_is((std::istream*)i);break;
-            case 1:
-            $1->set_os((std::ostream*)o);break;
-            case 2:
-            $1->set_es((std::ostream*)o);break;
-        }
-
-    }
-
     pid_t pid = fork();
     if(pid==-1){
-        std::cerr<<"Error : Unable create new process.\n";
+        perror("fork");
         return -1;
     }else if(pid==0){
         signal(SIGTSTP,SIG_DFL);
@@ -106,98 +91,36 @@ CMD : | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
         exit(ret);
     }
     if($1)delete $1;
-    if(i)delete i;
-    if(o)delete o;
+    
 }
 
 |BUILT_IN ARGUMENTS REDIRECTION
 {
     $1->set_args($2);
-    std::ifstream* i;
-    std::ofstream* o;
-    for(auto rd:$3){
-        switch(std::get<1>(rd)){
-            case 0:
-            i = new std::ifstream(std::get<2>(rd));break;
-            case 1:
-            o = new std::ofstream(std::get<2>(rd),std::ios_base::trunc);break;
-            case 2:
-            o = new std::ofstream(std::get<2>(rd),std::ios_base::app);break;
-        }
-        switch(std::get<0>(rd)){
-            case 0:
-            $1->set_is((std::istream*)i);break;
-            case 1:
-            $1->set_os((std::ostream*)o);break;
-            case 2:
-            $1->set_es((std::ostream*)o);break;
-        }
-
-    }
 
     $1->execute();
 
     if($1)delete $1;
-    if(i)delete i;
-    if(o)delete o;
 }
 
 
 | BIN ARGUMENTS REDIRECTION BACK CMD
 {
     if($1!=""){
-        pid_t pid = fork();
-
-        if(pid==-1){
-            std::cerr<<"Error : Unable create new process.\n";
-        }else if(pid==0){
-
-            signal(SIGTSTP,SIG_DFL);
-            signal(SIGCHLD,SIG_DFL);
-
-            std::vector<const char*> argv;
-            argv.push_back($1.c_str());
-            for(int i=0; i<$2.size(); i++){
-                argv.push_back($2[i].c_str());
-            }
-            argv.push_back(nullptr);
-
-            int ret = execv($1.c_str(),(char *const *)&argv[0]);
-            std::cerr<<"Exec Failed with Error Code  "<<errno<<"\n";
-            exit(ret);
+        job* j = shell.malloc_job($1,$2,$3);
+        if(j){
+            shell.launch_job(j,0);
         }
     }
+
 }
 
 | BIN ARGUMENTS REDIRECTION
 {
     if($1!=""){
-        shell.waiting = true;
-        pid_t pid = fork();
-
-        if(pid==-1){
-            std::cerr<<"Error : Unable create new process.\n";
-        }else if(pid==0){
-
-            signal(SIGTSTP,SIG_DFL);
-            signal(SIGCHLD,SIG_DFL);
-
-            std::vector<const char*> argv;
-            argv.push_back($1.c_str());
-            for(int i=0; i<$2.size(); i++){
-                argv.push_back($2[i].c_str());
-            }
-            argv.push_back(nullptr);
-
-            int ret = execv($1.c_str(),(char *const *)&argv[0]);
-            std::cerr<<"Exec Failed with Error Code  "<<errno<<"\n";
-            exit(ret);
-        }else{
-            int status;
-            shell.wait_pid = pid;
-            waitpid(pid,&status,WUNTRACED);
-            shell.waiting = false;
-            shell.wait_pid = -1;
+        job* j = shell.malloc_job($1,$2,$3);
+        if(j){
+            shell.launch_job(j,1);
         }
     }
 }
@@ -216,10 +139,8 @@ BG {$$=new bg(shell);}
 | SHIFT {$$=new command(shell);}
 | TEST {$$=new command(shell);}
 | TIME {$$=new command(shell);}
-| UNMASK {$$=new command(shell);}
 | UNSET {$$=new unset(shell);}
-
-
+| JOBS {$$=new jobs(shell);}
 ;
 
 BIN : ID
@@ -274,15 +195,153 @@ ARGUMENTS : {$$ = std::vector<std::string>();}
 
 /* redirection */
 
-REDIRECTION :  /* empty */{$$ = std::vector<std::tuple<int,int,std::string>>();} | REDIRECTION RD_OP NAME
-
+REDIRECTION :
+/* empty */ {
+    $$._in=$$._out=$$._err=-1;
+}
+| NUM GREATER BACK NUM REDIRECTION
 {
-    std::swap($$,$1);
-    $$.push_back(std::tuple<int,int,std::string>($2.first,$2.second,$3));
-
-};
-
-RD_OP : RD_I {$$ = std::make_pair($1,0);} | RD_O {$$ = std::make_pair($1,1);} | RD_O_AP {$$ = std::make_pair($1,2);};
+    switch($1){
+        case 0:
+            break;
+        case 1:
+            $5._out = $4;
+            break;
+        case 2:
+            $5._err = $4;
+            break;
+        default:
+            fprintf(stderr,"Redirection Error : Cannot redirect file descriptor %d\n",$1);
+    }
+    $$ = $5;
+}
+|NUM LESSER BACK NUM REDIRECTION
+{
+    switch($1){
+        case 0:
+            $5._in = $4;
+            break;
+        case 1:
+        case 2:
+            break;
+        default:
+        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+    }
+    $$ = $5;
+}
+| NUM RIGHT_SHIFT BACK NUM REDIRECTION
+{
+    switch($1){
+        case 0:
+            break;
+        case 1:
+            $5._out = $4;
+            break;
+        case 2:
+            $5._err = $4;
+            break;
+        default:
+        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+    }
+    $$ = $5;
+}
+| NUM GREATER NAME REDIRECTION
+{
+    switch($1){
+        case 0:
+            break;
+        case 1:
+            $4._out = open($3.c_str(),O_CREAT,0777);
+            if($4._out<0){
+                fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+            }
+            break;
+        case 2:
+            $4._err = open($3.c_str(),O_CREAT,0777);
+            if($4._err<0){
+                fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+            }
+            break;
+        default:
+        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+    }
+    $$ = $4;
+}
+| NUM LESSER NAME REDIRECTION
+{
+    switch($1){
+        case 0:
+        if(($4._in=open($3.c_str(),O_CREAT,0777))<0){
+            fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+        }
+        case 1:
+        case 2:
+            break;
+        default:
+        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+    }
+    $$=$4;
+}
+| NUM RIGHT_SHIFT NAME REDIRECTION
+{
+    switch($1){
+        case 0:
+        break;
+        case 1:
+        $4._out = open($3.c_str(),O_APPEND);
+        if($4._out<0){
+            fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+        }
+        break;
+        case 2:
+        $4._err = open($3.c_str(),O_APPEND);
+        if($4._err<0){
+            fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+        }
+        break;
+        default:
+        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+    }
+    $$ = $4;
+}
+| GREATER BACK NUM REDIRECTION
+{
+    $4._in = $3;
+    $$ = $4;
+}
+| LESSER BACK NUM REDIRECTION
+{
+    $4._in = $3;
+    $$ = $4;
+}
+| RIGHT_SHIFT BACK NUM REDIRECTION
+{
+    $4._out = $3;
+    $$ = $4;
+}
+| GREATER NAME REDIRECTION
+{
+    $3._out = open($2.c_str(),O_CREAT,0777);
+    if($3._out<0){
+        fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+    }
+    $$ = $3;
+}
+| LESSER NAME REDIRECTION
+{
+    if(($3._in=open($2.c_str(),O_CREAT,0777))<0){
+        fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+    }
+    $$=$3;
+}
+| RIGHT_SHIFT NAME REDIRECTION
+{
+    $3._out = open($2.c_str(),O_APPEND);
+    if($3._out<0){
+        fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+    }
+    $$ = $3;
+}
 
 //resolve name
 
@@ -306,7 +365,10 @@ NAME : VAR
 {
     $$ = $1;
 }
-
+| NUM
+{
+    $$ = std::to_string($1);
+}
 //reslove PATHa
 
 PATH : _PATH

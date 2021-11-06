@@ -1,11 +1,7 @@
 .PHONY: all
 
 all:
-	${MAKE} -C ls ${BIN}/ls
-	${MAKE} -C sleep ${BIN}/sleep
-	${MAKE} -C clear ${BIN}/clear
+	${MAKE} -C sig_test ${BIN}/sig_test
 
 clean:
-	${MAKE} -C ls clean
-	${MAKE} -C sleep clean
-	${MAKE} -C clear clean
+	${MAKE} -C sig_test clean

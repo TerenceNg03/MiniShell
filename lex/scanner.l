@@ -52,14 +52,13 @@ test return parse::Parser::token::TEST;
 time return parse::Parser::token::TIME;
 umask return parse::Parser::token::UNMASK;
 unset return parse::Parser::token::UNSET;
+jobs return parse::Parser::token::JOBS;
 
-[1-2]">>" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_O_AP;
-[1-2]">" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_O;
-[0]"<" yylval->build(yytext[0]-'0');return parse::Parser::token::RD_I;
+[0-9]{1,} yylval->build(atoi(yytext));return parse::Parser::token::NUM;
 
 [\'\"][.\\]*[\'\"]  yylval->build(std::string(yytext));return parse::Parser::token::STR;
 
-[a-zA-Z0-9\-\+]{1,} yylval->build(std::string(yytext));return parse::Parser::token::ID;
+[a-zA-Z0-9\-\+_]{1,} yylval->build(std::string(yytext));return parse::Parser::token::ID;
 
 "$"[a-zA-Z0-9\-]+ yylval->build(std::string(yytext+1));return parse::Parser::token::VAR;
 
@@ -69,11 +68,15 @@ unset return parse::Parser::token::UNSET;
 "&" return parse::Parser::token::BACK;
 "|" return parse::Parser::token::PIPE;
 "=" return parse::Parser::token::ASSIGN;
+">" return parse::Parser::token::GREATER;
+"<" return parse::Parser::token::LESSER;
+">>" return parse::Parser::token::RIGHT_SHIFT;
+"<<" return parse::Parser::token::LEFT_SHIFT;
+
 
 \n return parse::Parser::token::NEWLINE;
 
-    /*SIGINT also cause EOF need to recover from this*/
-    <<EOF>> if(interrupted){interrupted = false;unput('\n');putchar('\n');}else{unput('t');unput('i');unput('x');unput('e');}
+<<EOF>> unput('t');unput('i');unput('x');unput('e');std::cout<<"exit\n";
 [ \t]+ /* ignore whitespace */
 . yylval->build(std::string(yytext)); return parse::Parser::token::UNKNOWN;
 

@@ -15,17 +15,51 @@
 #include <ostream>
 #include <map>
 #include <filesystem>
+#include <termios.h>
+#include <mutex>
+#include "job.hpp"
+
+class parseFlexLexer;
 
 class minishell{
 
 public:
-    std::map<std::string,std::string> env;
-    bool waiting;
-    pid_t wait_pid=-1;
 
+    pid_t shell_pgid;
+    struct termios shell_tmodes;
+    int shell_terminal;
+    int shell_is_interactive;
+    /* wait_pid will not return when an interrupt occur and call wait_pid so we need to use a mutex lock to address this issue */
+    char wait_flag;
+    
+    /* The active jobs are linked into a list.  This is its head.   */
+    job *first_job = NULL;
+
+    std::map<std::string,std::string> env;
     minishell(std::vector<std::string> args);
     std::filesystem::path resolve_path(std::string s);
     std::vector<std::string> get_paths();
+
+    void init_shell(void);
+    void launch_process (process *p, pid_t pgid, int infile, int outfile, int errfile, int foreground);
+
+    /* check out https://www.gnu.org/software/libc/manual/html_node/Implementing-a-Shell.html for how to implement a job control shell*/
+    void launch_job (job *j, int foreground);
+    void put_job_in_foreground (job *j, int cont);
+    void put_job_in_background (job *j, int cont);
+    void do_job_notification (void);
+    void wait_for_job (job *j);
+    void update_status (void);
+    int mark_process_status (pid_t pid, int status);
+    void format_job_info (job *j, const char *status);
+    void mark_job_as_running (job *j);
+    void continue_job (job *j, int foreground);
+    void free_job(job* j);
+    job * find_job (pid_t pgid);
+
+    /* Malloc job for parser */
+    job* malloc_job(std::string& command, std::vector<std::string>& args, fd3& rds);
+
 };
 
 class command{
@@ -99,5 +133,14 @@ public:
 
     virtual int execute();
     virtual std::string get_name(){return "echo";};
+};
+
+class jobs:public command{
+public:
+
+    jobs(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "jobs";};
 };
 #endif /* minishell_hpp */

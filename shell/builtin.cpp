@@ -53,14 +53,17 @@ int bg::execute(){
         }
     }
 
-    pid_t cpid = atoi(arguments.at(0).c_str());
-
-    kill(cpid,0);
-    if (errno == ESRCH) {
-        // process doesn't exist
-        *error<<"Invalid pid : "<<arguments[0]<<"\n";
+    int _n = atoi(arguments.at(0).c_str());
+    int job_n = _n-1;
+    job* j = shell.first_job;
+    while(j&&job_n){
+        j = j->next;
+        job_n--;
+    }
+    if(j){
+        shell.put_job_in_background(j, 1);
     }else{
-        kill(cpid, SIGCONT);
+        fprintf(stderr, "No such job %%%d\n",_n);
     }
 
 
@@ -80,18 +83,17 @@ int fg::execute(){
         }
     }
 
-    pid_t cpid = atoi(arguments.at(0).c_str());
-
-    kill(cpid,0);
-    if (errno == ESRCH) {
-        // process doesn't exist
-        *error<<"Invalid pid : "<<arguments[0]<<"\n";
+    int _n = atoi(arguments.at(0).c_str());
+    int job_n = _n-1;
+    job* j = shell.first_job;
+    while(j&&job_n){
+        j = j->next;
+        job_n--;
+    }
+    if(j){
+        shell.put_job_in_foreground(j, 1);
     }else{
-        shell.waiting = true;
-        shell.wait_pid = cpid;
-        kill(cpid, SIGCONT);
-        int status;
-        waitpid(cpid, &status, WUNTRACED);
+        fprintf(stderr, "No such job %%%d\n",_n);
     }
 
     return 0;
@@ -132,3 +134,20 @@ int echo::execute(){
     return 0;
 }
 
+int jobs::execute(){
+    if(!shell.first_job)return 0;
+
+    job* j = shell.first_job;
+    int i=1;
+    while (j) {
+        printf("[%%%d] pgid:[%d] %s\n",i,j->pgid,j->command);
+        process *p = j->first_process;
+        while (p) {
+            printf("\tpid:[%d] status:%s\n",p->pid,p->stopped?"Stopped":"Running");
+            p = p->next;
+        }
+        j = j->next;
+        i++;
+    }
+    return 0;;
+}

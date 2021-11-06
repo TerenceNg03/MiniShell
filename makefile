@@ -1,7 +1,7 @@
 export
 
 CC = clang++
-CFLAG = -std=c++17 -Wall
+CFLAG = -std=c++17 -Wall -fno-exceptions
 INCLUDE = -I$(shell pwd)/include
 DEFINE = -Dregister
 FLAGS = ${CFLAG} ${INCLUDE} ${DEFINE}
@@ -13,8 +13,15 @@ RM = -@rm -f
 
 BIN = $(shell pwd)/bin
 
-.PHONY:  all subdirs
+.PHONY:  release subdirs all debug run
 
+release: all
+
+debug: CFLAG += -g
+debug: all
+
+run: all
+	@./minishell
 all: main.o subdirs
 	@mkdir -p ${BIN} 
 	${CC} ${CFLAGS} main.o lex/lex.o shell/shell.o -o ${BIN}/minishell
