@@ -25,11 +25,13 @@ namespace parse
 
         void reset();
 
+        
     private:
         Scanner*      scanner_;
         Parser*       parser_;
         location*     location_;
         int           error_;
+
 
         /// Allows Parser and Scanner to access private attributes
         /// of the Driver class

@@ -7,9 +7,8 @@
 
 
 # ifndef YY_DECL
-#  define YY_DECL parse::Parser::token_type                         \
-parse::Scanner::yylex(parse::Parser::semantic_type* yylval,    \
-parse::Parser::location_type*,        \
+#  define YY_DECL parse::Parser::symbol_type                         \
+parse::Scanner::yylex(    \
 parse::Driver& driver, minishell& shell)
 # endif
 
@@ -23,6 +22,7 @@ parse::Driver& driver, minishell& shell)
 
 namespace parse
 {
+    
     class Scanner : public parseFlexLexer
     {
         public:
@@ -30,13 +30,22 @@ namespace parse
 
             virtual ~Scanner();
 
-            virtual Parser::token_type yylex(
-                Parser::semantic_type* yylval,
-                Parser::location_type* l,
+            virtual Parser::symbol_type yylex(
                 Driver& driver,
                 minishell& shell);
 
             void set_debug(bool b);
+
+            std::string current_line="";
+            size_t current_col = 0, current_col_end = 0;
+            ssize_t current_line_sent = 0;
+            ssize_t current_line_len = 0;
+
+        virtual size_t LexerInput( char* buf, size_t max_size );
+            void reset_current_col();
+            const char* logfile = "./history.log";
+            FILE* log;
+
     };
 }
 

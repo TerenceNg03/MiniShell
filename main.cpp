@@ -15,7 +15,7 @@ minishell* shell = nullptr;
 
 struct sigaction sa_ch,sa_sus,sa_int;
 
-void child_term_handler(int sig, siginfo_t *info, void *context)
+void child_term_handler(int sig)
 {
     /* Do not wait if shell is already waiting */
     if(shell&&!shell->wait_flag)shell->do_job_notification();
@@ -31,9 +31,7 @@ int main(int argc, const char * argv[]) {
     //setup signal handler
 
     //child terminated
-    sa_ch.sa_flags = SA_RESTART;
-    sa_ch.sa_sigaction = child_term_handler;
-    sigaction(SIGCHLD, &sa_ch, NULL);
+    signal(SIGCHLD, child_term_handler);
 
     //run parser
     driver.parse();

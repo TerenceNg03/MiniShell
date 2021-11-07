@@ -42,3 +42,4 @@ clean:
 	${RM} *.o
 	${RM} bin/minishell
 	${RM} minishell
+	${RM} *.log

@@ -44,13 +44,15 @@
 %locations
 %define api.namespace {parse}
 %define api.parser.class {Parser}
-%parse-param {Driver &driver}{minishell& shell}
 %lex-param {Driver &driver}{minishell& shell}
+%parse-param {Driver &driver}{minishell& shell}
 %define parse.error verbose
 %language "c++"
 %define api.value.type variant
+%define api.token.constructor
 
-%token BG CD _ECHO EXEC EXIT FG SET SHIFT TEST TIME UNMASK UNSET JOBS UNKNOWN
+%token BG CD _ECHO EXEC EXIT FG SET SHIFT TEST TIME UNMASK UNSET JOBS
+%token <std::string> UNKNOWN
 %token NEWLINE BACK PIPE ASSIGN GREATER LESSER RIGHT_SHIFT LEFT_SHIFT SEMICOLON
 %token <int> NUM
 %token _EOF END
@@ -72,14 +74,23 @@ CMDS :  /*empty*/
 }
 |CMDS CMD NEWLINE
 {
-
+    driver.location_->lines();
+    driver.location_->step();
+    driver.scanner_->reset_current_col();
     printf("minishell %s $ ",fs::path(shell.env["PWD"]).filename().string().c_str());
 
-};
+}
+| CMDS error NEWLINE
+{
+    driver.location_->lines();
+    driver.location_->step();
+    driver.scanner_->reset_current_col();
+    yyerrok;
+    printf("minishell %s $ ",fs::path(shell.env["PWD"]).filename().string().c_str());
+}
 
-
-CMD :/* empty command */
-| CMD SEMICOLON CMD
+CMD : /* empty */
+|CMD SEMICOLON CMD
 
 | BUILT_IN ARGUMENTS REDIRECTION BACK CMD
 {
@@ -127,7 +138,6 @@ CMD :/* empty command */
         }
     }
 }
-| error
 
 /* built-in functions */
 BUILT_IN :
@@ -382,9 +392,14 @@ PATH : _PATH
 
 namespace parse
 {
-    void Parser::error(const location&, const std::string& m)
+    void Parser::error(const location& loc, const std::string& m)
     {
-        std::cout << *driver.location_ << ": " << m << "\n";
-        driver.error_ = (driver.error_ == 127 ? 127 : driver.error_ + 1);
+        size_t current_col = driver.scanner_->current_col;
+        std::cout << "line " << loc << ": " << m << "\n";
+        fprintf(stderr,"\t%s\t", driver.scanner_->current_line.c_str());
+        for(int i = 0; i < current_col; i++)
+        fprintf(stderr,"~");
+        fprintf(stderr,"^\n");
     }
+    
 }

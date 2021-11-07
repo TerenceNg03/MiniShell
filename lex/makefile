@@ -1,6 +1,6 @@
 .PHONY: clean
 
-lex.o: scanner.o parser.o driver.o
+lex.o: scanner.o parser.o driver.o scanner.o
 	
 	${LD} ${LFLAGS} scanner.o parser.o driver.o -o lex.o
 	
