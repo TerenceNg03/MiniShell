@@ -4,7 +4,7 @@
 #include "scanner.hh"
 #include <filesystem>
 namespace fs = std::filesystem;
-#define yyterminate() return( parse::Parser::make_END )
+#define yyterminate() return( parse::Parser::make_END(loc) )
 #define loc (*driver.location_)
 #ifndef register
 #define register
@@ -37,20 +37,6 @@ loc.lines (Line);                    \
 %option c++
 %%
 
-bg return parse::Parser::make_BG(loc);
-cd return parse::Parser::make_CD(loc);
-echo return parse::Parser::make__ECHO(loc);
-exec return parse::Parser::make_EXEC(loc);
-exit return parse::Parser::make_EXIT(loc);
-fg return parse::Parser::make_FG(loc);
-set return parse::Parser::make_SET(loc);
-shift return parse::Parser::make_SHIFT(loc);
-test return parse::Parser::make_TEST(loc);
-time return parse::Parser::make_TIME(loc);
-umask return parse::Parser::make_UNMASK(loc);
-unset return parse::Parser::make_UNSET(loc);
-jobs return parse::Parser::make_JOBS(loc);
-
 [0-9]{1,} return parse::Parser::make_NUM(atoi(yytext),loc);
 
 [\'\"][.\\]*[\'\"]  return parse::Parser::make_STR(std::string(yytext),loc);
@@ -66,17 +52,21 @@ jobs return parse::Parser::make_JOBS(loc);
 "|" return parse::Parser::make_PIPE(loc);
 "=" return parse::Parser::make_ASSIGN(loc);
 ">" return parse::Parser::make_GREATER(loc);
+"[0-9]{1,}>" yytext[strlen(yytext)-1]='\0';return parse::Parser::make_NUM_GREATER(atoi(yytext),loc);
 "<" return parse::Parser::make_LESSER(loc);
+"[0-9]{1,}<" yytext[strlen(yytext)-1]='\0';return parse::Parser::make_NUM_LESSER(atoi(yytext),loc);
 ">>" return parse::Parser::make_RIGHT_SHIFT(loc);
+"[0-9]{1,}>>" yytext[strlen(yytext)-1]=yytext[strlen(yytext)-2]='\0';return parse::Parser::make_NUM_RIGHT_SHIFT(atoi(yytext),loc);
 "<<" return parse::Parser::make_LEFT_SHIFT(loc);
 ";" return parse::Parser::make_SEMICOLON(loc);
 
 
 \n return parse::Parser::make_NEWLINE(loc);
 
-<<EOF>> unput('t');unput('i');unput('x');unput('e');//std::cout<<"exit\n";
+<<EOF>> return parse::Parser::make_END(loc);
+
 [ \t]+ /* ignore whitespace */
-. return parse::Parser::make_UNKNOWN(std::string(yytext),loc);
+. return parse::Parser::make_ILLEGAL(std::string(yytext),loc);
 
 %%
 

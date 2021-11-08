@@ -5,7 +5,7 @@
 #include <string>
 #include "y.tab.hh"
 #include "scanner.hh"
-#define yylex driver.scanner_->yylex
+#define yylex driver.scanner_->lex
 %}
 
 %code requires{
@@ -51,17 +51,15 @@
 %define api.value.type variant
 %define api.token.constructor
 
-%token BG CD _ECHO EXEC EXIT FG SET SHIFT TEST TIME UNMASK UNSET JOBS
-%token <std::string> UNKNOWN
+%token <std::string> ILLEGAL
 %token NEWLINE BACK PIPE ASSIGN GREATER LESSER RIGHT_SHIFT LEFT_SHIFT SEMICOLON
-%token <int> NUM
-%token _EOF END
+%token <int> NUM NUM_GREATER NUM_LESSER NUM_RIGHT_SHIFT
 %token <std::string> VAR STR ID _PATH
+%token END
 
 %type CMDS
-%type <std::string> NAME PATH
-%type <command*> BUILT_IN
-%type <fd3> REDIRECTION
+%type <std::string> WORD PATH
+%type <fd3> REDIRECTION SIMPLE_RD
 %type <std::vector<std::string>> ARGUMENTS
 %type <std::string> BIN
 
@@ -89,276 +87,235 @@ CMDS :  /*empty*/
     printf("minishell %s $ ",fs::path(shell.env["PWD"]).filename().string().c_str());
 }
 
-CMD : /* empty */
-|CMD SEMICOLON CMD
-
-| BUILT_IN ARGUMENTS REDIRECTION BACK CMD
+SIMPLE_CMD_FORE : BIN ARGUMENTS REDIRECTION
 {
-    $1->set_args($2);
-    pid_t pid = fork();
-    if(pid==-1){
-        perror("fork");
-        return -1;
-    }else if(pid==0){
-        signal(SIGTSTP,SIG_DFL);
-        int ret = $1->execute();
-        exit(ret);
-    }
-    if($1)delete $1;
-    
+    if(shell.try_launch_job($1,$2,$3,0)){puts("\n\n[ Shell EXITED ]\n");YYACCEPT;}
 }
 
-|BUILT_IN ARGUMENTS REDIRECTION
+SIMPLE_CMD_BACK : BIN ARGUMENTS REDIRECTION BACK
 {
-    $1->set_args($2);
-
-    $1->execute();
-
-    if($1)delete $1;
+    if(shell.try_launch_job($1,$2,$3,1)){puts("\n\n[ Shell EXITED ]\n");YYACCEPT;}
 }
 
 
-| BIN ARGUMENTS REDIRECTION BACK CMD
+CMD :
+/* empty command */
+| SIMPLE_CMD_BACK SEMICOLON CMD
+| SIMPLE_CMD_FORE SEMICOLON CMD
+| SIMPLE_CMD_BACK CMD
+| SIMPLE_CMD_FORE
+| END
 {
-    if($1!=""){
-        job* j = shell.malloc_job($1,$2,$3);
-        if(j){
-            shell.launch_job(j,0);
-        }
-    }
-
+    puts("\n\n[ Shell EXITED ]\n");YYACCEPT;
 }
-
-| BIN ARGUMENTS REDIRECTION
-{
-    if($1!=""){
-        job* j = shell.malloc_job($1,$2,$3);
-        if(j){
-            shell.launch_job(j,1);
-        }
-    }
-}
-
-/* built-in functions */
-BUILT_IN :
-
-BG {$$=new bg(shell);}
-| CD {$$=new cd(shell);}
-| _ECHO {$$=new echo(shell);}
-| EXEC {$$=new command(shell);}
-| EXIT {std::cout<<"\n\n[ Shell EXITED ]\n\n";YYACCEPT;}
-| FG {$$=new fg(shell);}
-| SET {$$=new set(shell);}
-| SHIFT {$$=new command(shell);}
-| TEST {$$=new command(shell);}
-| TIME {$$=new command(shell);}
-| UNSET {$$=new unset(shell);}
-| JOBS {$$=new jobs(shell);}
-;
 
 BIN : ID
 {
-    auto paths = shell.get_paths();
-    bool found = false;
-
-    //search all search path
-    for(auto path : paths){
-        if(fs::exists(fs::path(path+"/"+$1))){
-            $$=fs::path(path+"/"+$1).string();
-            found = true;
-            break;
-        }
-    }
-
-
-    if(!found){
-        std::cerr<<$1<<" command not found.\n";
-        $$="";
-    }
+    $$ = $1;
 
 };
 | PATH
 {
-    bool found = false;
-
-    //execute from path
-    if(fs::exists(fs::path($1))){
-        $$=fs::path($1).string();
-        found = true;
-    }
-
-    if(!found){
-        std::cerr<<$1<<" : No such file or directory.\n";
-        $$="";
-    }else{
-
-        auto p = fs::status($1).permissions();
-        bool perm_x =((p & fs::perms::owner_exec) != fs::perms::none)|| ((p & fs::perms::group_exec) != fs::perms::none)|| ((p & fs::perms::others_exec) != fs::perms::none);
-
-        if(!perm_x){
-            std::cerr<<$1<<" : Permission denied.\n";
-            $$ = "";
-        }
-    }
+    $$ = $1;
 }
+
 
 /* arguments */
 ARGUMENTS : {$$ = std::vector<std::string>();}
-| ARGUMENTS NAME {std::swap($$, $1);$$.push_back($2);};
+| ARGUMENTS WORD {std::swap($$, $1);$$.push_back($2);};
 
 /* redirection */
 
 REDIRECTION :
-/* empty */ {
+/* empty */
+{
     $$._in=$$._out=$$._err=-1;
 }
-| NUM GREATER BACK NUM REDIRECTION
+| REDIRECTION SIMPLE_RD
 {
+    $1._in = ($2._in<0)?$1._in:$2._in;
+    $1._out = ($2._out<0)?$1._out:$2._out;
+    $1._err = ($2._err<0)?$1._err:$2._err;
+    $1.fail = $2.fail|$1.fail;
+    $$ = $1;
+}
+
+SIMPLE_RD : NUM_GREATER BACK NUM
+{
+    fd3 _fd3 = {-1,-1,-1,0};
     switch($1){
         case 0:
             break;
         case 1:
-            $5._out = $4;
+            _fd3._out = $3;
             break;
         case 2:
-            $5._err = $4;
+            _fd3._err = $3;
             break;
         default:
             fprintf(stderr,"Redirection Error : Cannot redirect file descriptor %d\n",$1);
+            _fd3.fail = 1;
     }
-    $$ = $5;
+    $$ = _fd3;
 }
-|NUM LESSER BACK NUM REDIRECTION
+|NUM_LESSER BACK NUM
 {
+    fd3 _fd3 = {-1,-1,-1,0};
     switch($1){
         case 0:
-            $5._in = $4;
+            _fd3._in = $3;
             break;
         case 1:
         case 2:
             break;
         default:
-        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+        fprintf(stderr,"shell : Bad file descriptor %d\n",$1);
+        _fd3.fail = 1;
     }
-    $$ = $5;
+    $$ = _fd3;
 }
-| NUM RIGHT_SHIFT BACK NUM REDIRECTION
+| NUM_RIGHT_SHIFT BACK NUM
 {
+    fd3 _fd3 = {-1,-1,-1,0};
     switch($1){
         case 0:
             break;
         case 1:
-            $5._out = $4;
+            _fd3._out = $3;
             break;
         case 2:
-            $5._err = $4;
+            _fd3._err = $3;
             break;
         default:
-        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+        fprintf(stderr,"shell : Bad file descriptor %d\n",$1);
+        _fd3.fail = 1;
     }
-    $$ = $5;
+    $$ = _fd3;
 }
-| NUM GREATER NAME REDIRECTION
+| NUM_GREATER WORD
 {
+    fd3 _fd3 = {-1,-1,-1,0};
     switch($1){
         case 0:
             break;
         case 1:
-            $4._out = open($3.c_str(),O_CREAT,0777);
-            if($4._out<0){
-                fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+            _fd3._out = open($2.c_str(),O_CREAT,0777);
+            if(_fd3._out<0){
+                fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+                _fd3.fail = 1;
             }
             break;
         case 2:
-            $4._err = open($3.c_str(),O_CREAT,0777);
-            if($4._err<0){
-                fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+            _fd3._err = open($2.c_str(),O_CREAT,0777);
+            if(_fd3._err<0){
+                fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+                _fd3.fail = 1;
             }
             break;
         default:
-        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+        fprintf(stderr,"shell : Bad file descriptor %d\n",$1);
+        _fd3.fail = 1;
     }
-    $$ = $4;
+    $$ = _fd3;
 }
-| NUM LESSER NAME REDIRECTION
+| NUM_LESSER WORD
 {
+    fd3 _fd3 = {-1,-1,-1,0};
     switch($1){
         case 0:
-        if(($4._in=open($3.c_str(),O_CREAT,0777))<0){
-            fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+        if((_fd3._in=open($2.c_str(),O_CREAT,0777))<0){
+            fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+            _fd3.fail = 1;
         }
         case 1:
         case 2:
             break;
         default:
-        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+        fprintf(stderr,"shell : Bad file descriptor %d\n",$1);
+        _fd3.fail = 1;
     }
-    $$=$4;
+    $$=_fd3;
 }
-| NUM RIGHT_SHIFT NAME REDIRECTION
+| NUM_RIGHT_SHIFT WORD
 {
+    fd3 _fd3 = {-1,-1,-1,0};
     switch($1){
         case 0:
         break;
         case 1:
-        $4._out = open($3.c_str(),O_APPEND);
-        if($4._out<0){
-            fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+        _fd3._out = open($2.c_str(),O_APPEND);
+        if(_fd3._out<0){
+            fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+            _fd3.fail = 1;
         }
         break;
         case 2:
-        $4._err = open($3.c_str(),O_APPEND);
-        if($4._err<0){
-            fprintf(stderr,"Redirection Error : Failed to open %s\n",$3.c_str());
+        _fd3._err = open($2.c_str(),O_APPEND);
+        if(_fd3._err<0){
+            fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+            _fd3.fail = 1;
         }
         break;
         default:
-        fprintf(stderr,"Redirection Error : Cannit redirect file descriptor %d\n",$1);
+        fprintf(stderr,"shell : Bad file descriptor %d\n",$1);
+        _fd3.fail = 1;
     }
-    $$ = $4;
+    $$ = _fd3;
 }
-| GREATER BACK NUM REDIRECTION
+| GREATER BACK NUM
 {
-    $4._in = $3;
-    $$ = $4;
+    fd3 _fd3 = {-1,-1,-1,0};
+    _fd3._in = $3;
+    if($3>2){fprintf(stderr,"shell : Bad file descriptor %d\n",$3),_fd3.fail = 1;}
+    $$ = _fd3;
 }
-| LESSER BACK NUM REDIRECTION
+| LESSER BACK NUM
 {
-    $4._in = $3;
-    $$ = $4;
+    fd3 _fd3 = {-1,-1,-1,0};
+    _fd3._in = $3;
+    if($3>2){fprintf(stderr,"shell : Bad file descriptor %d\n",$3),_fd3.fail = 1;}
+    $$ = _fd3;
 }
-| RIGHT_SHIFT BACK NUM REDIRECTION
+| RIGHT_SHIFT BACK NUM
 {
-    $4._out = $3;
-    $$ = $4;
+    fd3 _fd3 = {-1,-1,-1,0};
+    _fd3._out = $3;
+    if($3>2){fprintf(stderr,"shell : Bad file descriptor %d\n",$3),_fd3.fail = 1;}
+    $$ = _fd3;
 }
-| GREATER NAME REDIRECTION
+| GREATER WORD
 {
-    $3._out = open($2.c_str(),O_CREAT,0777);
-    if($3._out<0){
+    fd3 _fd3 = {-1,-1,-1,0};
+    _fd3._out = open($2.c_str(),O_CREAT,0777);
+    if(_fd3._out<0){
         fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+        _fd3.fail = 1;
     }
-    $$ = $3;
+    $$ = _fd3;
 }
-| LESSER NAME REDIRECTION
+| LESSER WORD
 {
-    if(($3._in=open($2.c_str(),O_CREAT,0777))<0){
+    fd3 _fd3 = {-1,-1,-1,0};
+    if((_fd3._in=open($2.c_str(),O_CREAT,0777))<0){
         fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+        _fd3.fail = 1;
     }
-    $$=$3;
+    $$=_fd3;
 }
-| RIGHT_SHIFT NAME REDIRECTION
+| RIGHT_SHIFT WORD
 {
-    $3._out = open($2.c_str(),O_APPEND);
-    if($3._out<0){
+    fd3 _fd3 = {-1,-1,-1,0};
+    _fd3._out = open($2.c_str(),O_APPEND);
+    if(_fd3._out<0){
         fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
+        _fd3.fail = 1;
     }
-    $$ = $3;
+    $$ = _fd3;
 }
 
 //resolve name
 
-NAME : VAR
+WORD : VAR
 {
     if(shell.env.count($1)){
         $$ = shell.env[$1];
@@ -388,6 +345,7 @@ PATH : _PATH
 {
     $$ = shell.resolve_path($1).string();
 }
+
 %%
 
 namespace parse

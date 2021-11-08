@@ -39,10 +39,11 @@ typedef struct job
     int stdin, stdout, stderr;  /* standard i/o channels */
 } job;
 
-typedef struct _fd3{
+typedef struct fd3{
     int _in;
     int _out;
     int _err;
+    int fail;
 }fd3;
 
 /* Return true if all processes in the job have stopped or completed.  */

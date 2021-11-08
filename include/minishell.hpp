@@ -59,6 +59,9 @@ public:
 
     /* Malloc job for parser */
     job* malloc_job(std::string& command, std::vector<std::string>& args, fd3& rds);
+    /* Try to anaylize command and launch job if success */
+    /* Return -1 if shell exist, else 0 */
+    int try_launch_job(std::string& command, std::vector<std::string>& args, fd3& rds, char background);
 
 };
 

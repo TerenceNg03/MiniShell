@@ -433,4 +433,74 @@ job* minishell::malloc_job(std::string& command, std::vector<std::string>& args,
     return j;
 }
 
+int minishell::try_launch_job(std::string& cmd_raw, std::vector<std::string>& args, fd3& rds, char background){
+    if(rds.fail)return 0;
+    rds._in = (rds._in<0)?0:rds._in;
+    rds._out = (rds._out<0)?1:rds._out;
+    rds._err = (rds._err<0)?2:rds._err;
+
+    command* cmd=NULL;
+    if(cmd_raw == "bg")cmd = new bg(*this);
+    else if(cmd_raw == "cd")cmd = new cd(*this);
+    else if(cmd_raw == "echo")cmd = new echo(*this);
+    else if(cmd_raw == "exec")cmd = new command(*this);
+    else if(cmd_raw == "exit"){puts("\n\n[ Shell EXITED ]\n");return -1;}
+    else if(cmd_raw == "fg")cmd = new fg(*this);
+    else if(cmd_raw == "set" )cmd = new set(*this);
+    else if(cmd_raw == "shift")cmd = new command(*this);
+    else if(cmd_raw == "test")cmd = new command(*this);
+    else if(cmd_raw == "time")cmd = new command(*this);
+    else if(cmd_raw == "unset")cmd = new unset(*this);
+    else if(cmd_raw == "jobs")cmd = new jobs(*this);
+
+    /* Is a builtin command */
+    if(cmd){
+        if(background){
+            fprintf(stderr,"shell : Built-in command executed in background is not supported\n");
+            return 0;
+        }else{
+            cmd->set_args(args);
+            cmd->execute();
+            delete cmd;
+            return 0;
+        }
+    }
+    char valid = 0;
+    /* Check all search path */
+    auto paths = this->get_paths();
+
+    //search all search path
+    for(auto path : paths){
+        if(fs::exists(fs::path(path+"/"+cmd_raw))){
+            cmd_raw=fs::path(path+"/"+cmd_raw).string();
+            valid = true;
+            break;
+        }
+    }
+    /* Not find in path, check if it is executable*/
+    if(!valid){
+        if(fs::exists(fs::path(cmd_raw))){
+            valid = true;
+        }
+
+        if(valid){
+            auto p = fs::status(cmd_raw).permissions();
+            bool perm_x =((p & fs::perms::owner_exec) != fs::perms::none)|| ((p & fs::perms::group_exec) != fs::perms::none)|| ((p & fs::perms::others_exec) != fs::perms::none);
+
+            if(!perm_x){
+                valid = 0;
+            }
+        }
+    }
+    if(valid){
+        job* j = this->malloc_job(cmd_raw,args,rds);
+        if(j){
+            this->launch_job(j,!background);
+        }
+    }else{
+        fprintf(stderr,"shell : %s is not a command neither an executable file\n",cmd_raw.c_str());
+    }
+
+    return 0;
+}
 

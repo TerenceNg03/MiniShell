@@ -8,7 +8,7 @@
 
 # ifndef YY_DECL
 #  define YY_DECL parse::Parser::symbol_type                         \
-parse::Scanner::yylex(    \
+parse::Scanner::lex(    \
 parse::Driver& driver, minishell& shell)
 # endif
 
@@ -30,7 +30,7 @@ namespace parse
 
             virtual ~Scanner();
 
-            virtual Parser::symbol_type yylex(
+            virtual Parser::symbol_type lex(
                 Driver& driver,
                 minishell& shell);
 
@@ -41,7 +41,7 @@ namespace parse
             ssize_t current_line_sent = 0;
             ssize_t current_line_len = 0;
 
-        virtual size_t LexerInput( char* buf, size_t max_size );
+            virtual size_t LexerInput( char* buf, size_t max_size );
             void reset_current_col();
             const char* logfile = "./history.log";
             FILE* log;

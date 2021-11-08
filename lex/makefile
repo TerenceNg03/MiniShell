@@ -12,7 +12,7 @@ scanner.o: scanner.l scanner.hh parser.o
 
 parser.o: parser.y
 
-	${YACC} -d -Wno-yacc parser.y -o y.tab.cc
+	${YACC} -Wcounterexamples -d -Wno-yacc parser.y -o y.tab.cc
 	${CC} ${FLAGS} -c y.tab.cc -o parser.o
 
 driver.o: driver.cc scanner.o parser.o
