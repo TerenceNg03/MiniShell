@@ -1,18 +1,20 @@
 # MiniShell
 
-Implementing a shell with basic function with **ONLY** POXSI system call. 
+Implementing a shell with basic function with **ONLY** POSIX system call. 
 
 ### Build Environment
 ---
-* OS version : `OSX 12.0.1`
+* OS version : `OSX 10.15.7+`
 * C++ version : `c++17`
-* Compiler : `Apple Clang`
-* Bison : `Bison 3.2+` This is used to generate interpreter
+* Compiler : `Apple Clang 13.0.0`
+* Bison : `GNU Bison 3.2+`
+* flex : `flex 2.6.4`
 
-Note : This should be working on any OS implementing POXSI yet not tested.
+Note : This should be working on any OS implementing POSIX yet not tested.
 ### Supported Features
 ---
 
+Note : This shell implement does not fully statisfy POSIX standard. See [POSIX shell standard](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html).
 #### 1. Environment Variable Set and Unset
 
 Here is a list of default environment variables.
@@ -63,7 +65,7 @@ Other signal may also be support by your terminal. Checkout [GNU's description](
 #### 4. Shell Expansion
 Shell expands some string automatically. See [GNU's description](https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html)
 * `$VAR` will be replaced with shell's corresponding variable's content.
-* `~` will be replaced with `$HOME`
+* `~` will be replaced with `$HOME`.
 * `\` is used as escape character. For instance, `"\n\006\\"`will print newline, ascii`\06`and a `\`. Outside string `\` is alse used as escaped character. For example, `\>` will be interpreted as `>`.
 * `"asdf" 'asdf'` String is quoted by `'""` and must be paired unless escaped by `\`. Otherwise it will cause a syntax error.
 * Other expansion and expansion in string is not supported concurrently.
