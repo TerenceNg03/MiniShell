@@ -39,6 +39,8 @@ public:
     minishell(std::vector<std::string> args);
     std::filesystem::path resolve_path(std::string s);
     std::vector<std::string> get_paths();
+    std::string resolve_str(std::string& s);
+    std::string resolve_id(std::string& s);
 
     void init_shell(void);
     void launch_process (process *p, pid_t pgid, int infile, int outfile, int errfile, int foreground);

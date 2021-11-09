@@ -504,3 +504,82 @@ int minishell::try_launch_job(std::string& cmd_raw, std::vector<std::string>& ar
     return 0;
 }
 
+string minishell::resolve_str(string& s){
+    string ret = "";
+    s = s.substr(1,s.length()-2);
+    int len = (int)s.length();
+    bool translate=false;
+    int num=0;
+    for(int i=0; i<len; i++){
+        if(translate){
+            switch (s[i]) {
+                case 'n':
+                    ret += '\n';
+                    break;
+                case 'r':
+                    ret += '\r';
+                    break;
+                case 't':
+                    ret += '\t';
+                    break;
+                case 'a':
+                    ret += '\a';
+                    break;
+                case 'f':
+                    ret += '\f';
+                    break;
+                case 'v':
+                    ret += '\v';
+                    break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                    num = 0;
+                    num += (s[i]-'0');
+                    if(i+1<len && s[i+1]<'8' && s[i+1]>='0'){
+                        num*=8;
+                        num+=s[i+1]-'0';
+                        i++;
+                    }
+                    if(i+1<len && s[i+1]<'8' && s[i+1]>='0'){
+                        num*=8;
+                        num+=s[i+1]-'0';
+                        i++;
+                    }
+                    ret += num;
+                    i++;
+                default:
+                    ret += s[i];
+                    break;
+            }
+        }else{
+            if(s[i]=='\\'){
+                translate = true;
+            }else{
+                ret += s[i];
+            }
+        }
+    }
+    return ret;
+}
+
+string minishell::resolve_id(string& s){
+    string ret = "";
+    int len = (int)s.length();
+    for(int i=0; i<len; i++){
+        if(s[i]=='\\'){
+            if(i+1<len){
+                i++;
+                ret+=s[i];
+            }
+        }else{
+            ret += s[i];
+        }
+    }
+    return ret;
+}

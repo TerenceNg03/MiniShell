@@ -39,9 +39,10 @@ loc.lines (Line);                    \
 
 [0-9]{1,} return parse::Parser::make_NUM(atoi(yytext),loc);
 
-[\'\"][.\\]*[\'\"]  return parse::Parser::make_STR(std::string(yytext),loc);
+\"(\\.|[^\\"])*\"  return parse::Parser::make_STR(std::string(yytext),loc);
+\'(\\.|[^\\'])*\' return parse::Parser::make_STR(std::string(yytext),loc);
 
-[a-zA-Z0-9\-\+_]{1,} return parse::Parser::make_ID(std::string(yytext),loc);
+([a-zA-Z0-9\-\+_]|\\.){1,} return parse::Parser::make_ID(std::string(yytext),loc);
 
 "$"[a-zA-Z0-9\-]+ return parse::Parser::make_VAR(std::string(yytext+1),loc);
 
@@ -59,7 +60,8 @@ loc.lines (Line);                    \
 "[0-9]{1,}>>" yytext[strlen(yytext)-1]=yytext[strlen(yytext)-2]='\0';return parse::Parser::make_NUM_RIGHT_SHIFT(atoi(yytext),loc);
 "<<" return parse::Parser::make_LEFT_SHIFT(loc);
 ";" return parse::Parser::make_SEMICOLON(loc);
-
+"(" return parse::Parser::make_L_BRACKET(loc);
+")" return parse::Parser::make_R_BRACKET(loc);
 
 \n return parse::Parser::make_NEWLINE(loc);
 

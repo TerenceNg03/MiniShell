@@ -64,7 +64,8 @@ Other signal may also be support by your terminal. Checkout [GNU's description](
 Shell expands some string automatically. See [GNU's description](https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html)
 * `$VAR` will be replaced with shell's corresponding variable's content.
 * `~` will be replaced with `$HOME`
-* `" '` will be removed if paired. Otherwise it will cause a syntax error.
+* `\` is used as escape character. For instance, `"\n\006\\"`will print newline, ascii`\06`and a `\`. Outside string `\` is alse used as escaped character. For example, `\>` will be interpreted as `>`.
+* `"asdf" 'asdf'` String is quoted by `'""` and must be paired unless escaped by `\`. Otherwise it will cause a syntax error.
 * Other expansion and expansion in string is not supported concurrently.
 #### 5. Pipeline and Redirection
 
@@ -74,6 +75,7 @@ This feature is currently bugged.
 
 - [x] Implement job control
 - [x] Support redirection grammer
+- [x] Support escape sequence
 - [ ] Fixing redirection bugs
 - [ ] Support environment variable assignment
 - [ ] Support pipeline between commands

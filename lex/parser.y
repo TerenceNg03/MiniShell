@@ -52,7 +52,7 @@
 %define api.token.constructor
 
 %token <std::string> ILLEGAL
-%token NEWLINE BACK PIPE ASSIGN GREATER LESSER RIGHT_SHIFT LEFT_SHIFT SEMICOLON
+%token NEWLINE BACK PIPE ASSIGN GREATER LESSER RIGHT_SHIFT LEFT_SHIFT SEMICOLON L_BRACKET R_BRACKET
 %token <int> NUM NUM_GREATER NUM_LESSER NUM_RIGHT_SHIFT
 %token <std::string> VAR STR ID _PATH
 %token END
@@ -111,7 +111,7 @@ CMD :
 
 BIN : ID
 {
-    $$ = $1;
+    $$ = shell.resolve_id($1);
 
 };
 | PATH
@@ -325,11 +325,11 @@ WORD : VAR
 }
 | STR
 {
-    $$ = $1.substr(1,$1.size()-2);
+    $$ = shell.resolve_str($1);
 }
 | ID
 {
-    $$ = $1;
+    $$ = shell.resolve_id($1);
 }
 | PATH
 {
