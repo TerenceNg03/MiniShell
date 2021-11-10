@@ -53,11 +53,11 @@ loc.lines (Line);                    \
 "|" return parse::Parser::make_PIPE(loc);
 "=" return parse::Parser::make_ASSIGN(loc);
 ">" return parse::Parser::make_GREATER(loc);
-"[0-9]{1,}>" yytext[strlen(yytext)-1]='\0';return parse::Parser::make_NUM_GREATER(atoi(yytext),loc);
+[0-9]{1,}">" yytext[strlen(yytext)-1]='\0';return parse::Parser::make_NUM_GREATER(atoi(yytext),loc);
 "<" return parse::Parser::make_LESSER(loc);
-"[0-9]{1,}<" yytext[strlen(yytext)-1]='\0';return parse::Parser::make_NUM_LESSER(atoi(yytext),loc);
+[0-9]{1,}"<" yytext[strlen(yytext)-1]='\0';return parse::Parser::make_NUM_LESSER(atoi(yytext),loc);
 ">>" return parse::Parser::make_RIGHT_SHIFT(loc);
-"[0-9]{1,}>>" yytext[strlen(yytext)-1]=yytext[strlen(yytext)-2]='\0';return parse::Parser::make_NUM_RIGHT_SHIFT(atoi(yytext),loc);
+[0-9]{1,}">>" yytext[strlen(yytext)-1]=yytext[strlen(yytext)-2]='\0';return parse::Parser::make_NUM_RIGHT_SHIFT(atoi(yytext),loc);
 "<<" return parse::Parser::make_LEFT_SHIFT(loc);
 ";" return parse::Parser::make_SEMICOLON(loc);
 "(" return parse::Parser::make_L_BRACKET(loc);

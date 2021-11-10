@@ -199,14 +199,14 @@ SIMPLE_RD : NUM_GREATER BACK NUM
         case 0:
             break;
         case 1:
-            _fd3._out = open($2.c_str(),O_CREAT,0777);
+            _fd3._out = open($2.c_str(),O_CREAT|O_WRONLY,0666);
             if(_fd3._out<0){
                 fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
                 _fd3.fail = 1;
             }
             break;
         case 2:
-            _fd3._err = open($2.c_str(),O_CREAT,0777);
+            _fd3._err = open($2.c_str(),O_CREAT|O_WRONLY,0666);
             if(_fd3._err<0){
                 fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
                 _fd3.fail = 1;
@@ -223,7 +223,7 @@ SIMPLE_RD : NUM_GREATER BACK NUM
     fd3 _fd3 = {-1,-1,-1,0};
     switch($1){
         case 0:
-        if((_fd3._in=open($2.c_str(),O_CREAT,0777))<0){
+        if((_fd3._in=open($2.c_str(),O_CREAT|O_RDONLY,0666))<0){
             fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
             _fd3.fail = 1;
         }
@@ -243,14 +243,14 @@ SIMPLE_RD : NUM_GREATER BACK NUM
         case 0:
         break;
         case 1:
-        _fd3._out = open($2.c_str(),O_APPEND);
+        _fd3._out = open($2.c_str(),O_CREAT | O_APPEND|O_WRONLY,0666);
         if(_fd3._out<0){
             fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
             _fd3.fail = 1;
         }
         break;
         case 2:
-        _fd3._err = open($2.c_str(),O_APPEND);
+        _fd3._err = open($2.c_str(),O_CREAT | O_APPEND|O_WRONLY,0666);
         if(_fd3._err<0){
             fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
             _fd3.fail = 1;
@@ -286,7 +286,7 @@ SIMPLE_RD : NUM_GREATER BACK NUM
 | GREATER WORD
 {
     fd3 _fd3 = {-1,-1,-1,0};
-    _fd3._out = open($2.c_str(),O_CREAT,0777);
+    _fd3._out = open($2.c_str(),O_CREAT|O_WRONLY,0666);
     if(_fd3._out<0){
         fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
         _fd3.fail = 1;
@@ -296,7 +296,7 @@ SIMPLE_RD : NUM_GREATER BACK NUM
 | LESSER WORD
 {
     fd3 _fd3 = {-1,-1,-1,0};
-    if((_fd3._in=open($2.c_str(),O_CREAT,0777))<0){
+    if((_fd3._in=open($2.c_str(),O_CREAT| O_RDONLY,0666))<0){
         fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
         _fd3.fail = 1;
     }
@@ -305,7 +305,7 @@ SIMPLE_RD : NUM_GREATER BACK NUM
 | RIGHT_SHIFT WORD
 {
     fd3 _fd3 = {-1,-1,-1,0};
-    _fd3._out = open($2.c_str(),O_APPEND);
+    _fd3._out = open($2.c_str(),O_CREAT | O_APPEND | O_WRONLY,0666);
     if(_fd3._out<0){
         fprintf(stderr,"Redirection Error : Failed to open %s\n",$2.c_str());
         _fd3.fail = 1;
