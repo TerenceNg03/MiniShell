@@ -62,6 +62,8 @@
 %type <fd3> REDIRECTION SIMPLE_RD
 %type <std::vector<std::string>> ARGUMENTS
 %type <std::string> BIN
+%type <std::optional<job>> SIMPLE_CMD
+%type <std::list<std::optional<job>>> CMD STATEMENT
 
 %%
 
@@ -70,8 +72,18 @@ CMDS :  /*empty*/
     printf("minishell %s $ ",fs::path(shell.env["PWD"]).filename().string().c_str());
 
 }
-|CMDS CMD NEWLINE
+|CMDS STATEMENT NEWLINE
 {
+    char ok = 1;
+    for(auto j: $2){
+        if(!j)ok=0;
+    }
+
+    if(ok)for(auto j: $2){
+        shell.jobs.push_back(*j);
+        shell.launch_job(shell.jobs.back());
+    }
+
     driver.location_->lines();
     driver.location_->step();
     driver.scanner_->reset_current_col();
@@ -87,27 +99,58 @@ CMDS :  /*empty*/
     printf("minishell %s $ ",fs::path(shell.env["PWD"]).filename().string().c_str());
 }
 
-SIMPLE_CMD_FORE : BIN ARGUMENTS REDIRECTION
+SIMPLE_CMD : BIN ARGUMENTS REDIRECTION
 {
-    if(shell.try_launch_job($1,$2,$3,0)){puts("\n\n[ Shell EXITED ]\n");YYACCEPT;}
+    auto p = shell.resolve_command($1,$2);
+    if(p){
+        job j($1, $3);
+        j.processes.push_front(*p);
+        $$ = j;
+    }else{
+        $$ = {};
+    }
+
 }
 
-SIMPLE_CMD_BACK : BIN ARGUMENTS REDIRECTION BACK
+STATEMENT: CMD
 {
-    if(shell.try_launch_job($1,$2,$3,1)){puts("\n\n[ Shell EXITED ]\n");YYACCEPT;}
+    $$ = $1;
 }
-
 
 CMD :
 /* empty command */
-| SIMPLE_CMD_BACK SEMICOLON CMD
-| SIMPLE_CMD_FORE SEMICOLON CMD
-| SIMPLE_CMD_BACK CMD
-| SIMPLE_CMD_FORE
+{
+    $$.clear();
+}
+| SIMPLE_CMD SEMICOLON CMD
+{
+    $3.push_front($1);
+    $$ = $3;
+}
+| SIMPLE_CMD BACK CMD
+{
+    if($1)$1->foreground = 0;
+    $3.push_front($1);
+    $$ = $3;
+}
+| SIMPLE_CMD
+{
+    $$.clear();
+    $$.push_front($1);
+}
 | END
 {
     puts("\n\n[ Shell EXITED ]\n");YYACCEPT;
 }
+/*| PIPELINE BACK CMD
+| PIPELINE SEMICOLON CMD
+
+
+PIPELINE :
+SIMPLE_CMD PIPE SIMPLE_CMD
+
+| PIPELINE PIPE SIMPLE_CMD
+*/
 
 BIN : ID
 {

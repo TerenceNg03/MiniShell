@@ -11,22 +11,19 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 
 namespace fs = std::filesystem;
 using namespace std;
+using namespace shellcmd;
 
 void command::set_args(vector<std::string> args){
     arguments = args;
 }
 
-void command::set_is(istream* i){input = i;};
-void command::set_os(ostream* o){output = o;};
-void command::set_es(ostream* err){error = err;};
-
 int cd::execute(){
     if(arguments.size()<1){
-        *error<<"Too few arguments\n";
         return -1;
     }
 
@@ -35,35 +32,35 @@ int cd::execute(){
         fs::current_path(p);
         shell.env["PWD"] = fs::current_path().string();
     }else{
-        *error<<arguments[0]<<" : is not a directory.\n";
+        fprintf(stderr, "cd: %s : is not a directory.\n",arguments[0].c_str());
     }
     return 0;
 }
 
 int bg::execute(){
     if(arguments.size()<1){
-        *error<<"Too few arguments\n";
+        fprintf(stderr, "bg: no current job\n");
         return -1;
     }
 
     for(auto n : arguments[0]){
         if(!isdigit(n)){
-            *error<<"Invalid pid : "<<arguments[0]<<"\n";
+            fprintf(stderr, "bg: Invalid pid : %s\n", arguments[0].c_str());
             return -1;
         }
     }
 
     int _n = atoi(arguments.at(0).c_str());
     int job_n = _n-1;
-    job* j = shell.first_job;
-    while(j&&job_n){
-        j = j->next;
+    auto j = shell.jobs.begin();
+    while(j != shell.jobs.end() && job_n){
+        j = next(j);
         job_n--;
     }
-    if(j){
-        shell.put_job_in_background(j, 1);
+    if(j != shell.jobs.end()){
+        shell.put_job_in_background(*j, 1);
     }else{
-        fprintf(stderr, "No such job %%%d\n",_n);
+        fprintf(stderr, "bg: No such job %%%d\n",_n);
     }
 
 
@@ -72,28 +69,28 @@ int bg::execute(){
 
 int fg::execute(){
     if(arguments.size()<1){
-        *error<<"Too few arguments\n";
+        fprintf(stderr, "fg: no current job\n");
         return -1;
     }
 
     for(auto n : arguments[0]){
         if(!isdigit(n)){
-            *error<<"Invalid pid : "<<arguments[0]<<"\n";
+            fprintf(stderr, "fg: Invalid pid : %s\n", arguments[0].c_str());
             return -1;
         }
     }
 
     int _n = atoi(arguments.at(0).c_str());
     int job_n = _n-1;
-    job* j = shell.first_job;
-    while(j&&job_n){
-        j = j->next;
+    auto j = shell.jobs.begin();
+    while(j != shell.jobs.end() && job_n){
+        j = next(j);
         job_n--;
     }
-    if(j){
-        shell.put_job_in_foreground(j, 1);
+    if(j!=shell.jobs.end()){
+        shell.put_job_in_foreground(*j, 1);
     }else{
-        fprintf(stderr, "No such job %%%d\n",_n);
+        fprintf(stderr, "fg: No such job %%%d\n",_n);
     }
 
     return 0;
@@ -102,7 +99,7 @@ int fg::execute(){
 int set::execute(){
 
     for(auto p : shell.env){
-        *output<<p.first<<" = "<<p.second<<"\n";
+        printf("%s = %s\n",p.first.c_str(),p.second.c_str());
     }
     return 0;
 }
@@ -121,32 +118,36 @@ int echo::execute(){
     bool flag = true;
     for(auto arg : arguments){
         if(regex_match(arg, re)){
-            *output<<arg.substr(1,arg.size()-1);
+            printf("%s",arg.substr(1,arg.size()-1).c_str());
         }else{
-            *output<<arg;
+            printf("%s",arg.c_str());
         }
         if(flag){
-            *output<<" ";
+            putchar(' ');
             flag = false;
         }
     }
-    *output<<"\n";
+    putchar('\n');
+    return 0;
+}
+
+int exit::execute(){
+    std::exit(0);
     return 0;
 }
 
 int jobs::execute(){
-    if(!shell.first_job)return 0;
 
-    job* j = shell.first_job;
+    auto j = shell.jobs.begin();
     int i=1;
-    while (j) {
-        printf("[%%%d] pgid:[%d] %s\n",i,j->pgid,j->command);
-        process *p = j->first_process;
-        while (p) {
+    while (j!=shell.jobs.end()) {
+        printf("[%%%d] pgid:[%d] %s\n",i,j->pgid,j->command.c_str());
+        auto p = j->processes.begin();
+        while (p != j->processes.end()) {
             printf("\tpid:[%d] status:%s\n",p->pid,p->stopped?"Stopped":"Running");
-            p = p->next;
+            p = next(p);
         }
-        j = j->next;
+        j = next(j);
         i++;
     }
     return 0;;

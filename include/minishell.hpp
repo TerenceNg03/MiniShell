@@ -10,7 +10,6 @@
 
 #include <vector>
 #include <string>
-#include <iostream>
 #include <list>
 #include <ostream>
 #include <map>
@@ -33,7 +32,7 @@ public:
     char wait_flag;
     
     /* The active jobs are linked into a list.  This is its head.   */
-    job *first_job = NULL;
+    std::list<job> jobs;
 
     std::map<std::string,std::string> env;
     minishell(std::vector<std::string> args);
@@ -43,47 +42,40 @@ public:
     std::string resolve_id(std::string& s);
 
     void init_shell(void);
-    void launch_process (process *p, pid_t pgid, int infile, int outfile, int errfile, int foreground);
 
     /* check out https://www.gnu.org/software/libc/manual/html_node/Implementing-a-Shell.html for how to implement a job control shell*/
-    void launch_job (job *j, int foreground);
-    void put_job_in_foreground (job *j, int cont);
-    void put_job_in_background (job *j, int cont);
+    void launch_job (job& j);
+    void launch_process (process& p, pid_t pgid, int infile, int outfile, int errfile, int foreground);
+    void put_job_in_foreground (job& j, int cont);
+    void put_job_in_background (job& j, int cont);
     void do_job_notification (void);
-    void wait_for_job (job *j);
+    void wait_for_job (job& j);
     void update_status (void);
     int mark_process_status (pid_t pid, int status);
-    void format_job_info (job *j, const char *status);
-    void mark_job_as_running (job *j);
-    void continue_job (job *j, int foreground);
-    void free_job(job* j);
+    void format_job_info (job& j, const char *status);
+    void mark_job_as_running (job& j);
+    void continue_job (job& j, int foreground);
     job * find_job (pid_t pgid);
 
-    /* Malloc job for parser */
-    job* malloc_job(std::string& command, std::vector<std::string>& args, fd3& rds);
-    /* Try to anaylize command and launch job if success */
-    /* Return -1 if shell exist, else 0 */
-    int try_launch_job(std::string& command, std::vector<std::string>& args, fd3& rds, char background);
+    /* Try to anaylize command and return a process or NULL if invaild */
+    std::optional<process> resolve_command(std::string& cmd_raw, std::vector<std::string>& args);
 
 };
+
+namespace shellcmd {
 
 class command{
 
 protected:
     minishell& shell;
     std::vector<std::string> arguments;
-    std::istream* input = &std::cin;
-    std::ostream* output = &std::cout;
-    std::ostream* error = &std::cerr;
+
 public:
     command(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):shell(shell),arguments(args){};
-    virtual int execute(){*error<<"Empty command executed.\n";return -1;};
+    virtual int execute(){fprintf(stderr, "Empty command executed.\n");return -1;};
     virtual std::string get_name(){return "Empty command";};
     virtual ~command(){};
     void set_args(std::vector<std::string> args);
-    void set_is(std::istream* i);
-    void set_os(std::ostream* o);
-    void set_es(std::ostream* err);
 };
 
 class cd:public command{
@@ -140,6 +132,15 @@ public:
     virtual std::string get_name(){return "echo";};
 };
 
+class exit:public command{
+public:
+
+    exit(minishell& shell, std::vector<std::string> args =std::vector<std::string>()):command(shell,args){};
+
+    virtual int execute();
+    virtual std::string get_name(){return "exit";};
+};
+
 class jobs:public command{
 public:
 
@@ -148,4 +149,6 @@ public:
     virtual int execute();
     virtual std::string get_name(){return "jobs";};
 };
+
+}
 #endif /* minishell_hpp */

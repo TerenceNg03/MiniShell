@@ -17,7 +17,7 @@ BIN = $(shell pwd)/bin
 
 release: all
 
-debug: CFLAG += -g
+debug: CFLAG += -g -DDEBUG=1
 debug: all
 
 run: all
