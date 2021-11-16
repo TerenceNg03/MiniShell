@@ -23,10 +23,10 @@ namespace shellcmd {
 }
 
 typedef struct fd3{
-    int _in;
-    int _out;
-    int _err;
-    int fail;
+    int _in = 0;
+    int _out = 1;
+    int _err = 2;
+    int fail = 0;
 }fd3;
 
 /* A process is a single process.  */

@@ -62,7 +62,7 @@
 %type <fd3> REDIRECTION SIMPLE_RD
 %type <std::vector<std::string>> ARGUMENTS
 %type <std::string> BIN
-%type <std::optional<job>> SIMPLE_CMD
+%type <std::optional<job>> SIMPLE_CMD PIPELINE
 %type <std::list<std::optional<job>>> CMD STATEMENT
 
 %%
@@ -122,6 +122,10 @@ CMD :
 {
     $$.clear();
 }
+| SEMICOLON
+{
+    $$.clear();
+}
 | SIMPLE_CMD SEMICOLON CMD
 {
     $3.push_front($1);
@@ -142,15 +146,72 @@ CMD :
 {
     puts("\n\n[ Shell EXITED ]\n");YYACCEPT;
 }
-/*| PIPELINE BACK CMD
-| PIPELINE SEMICOLON CMD
+| PIPELINE REDIRECTION BACK CMD
+{
+    if($1){
+        $1->foreground = 0;
+        $1->stdin = ($2._in<0)?0:$2._in;
+        $1->stdout = ($2._out<0)?1:$2._out;
+        $1->stderr = ($2._err<0)?2:$2._err;
+    }
+    $4.push_front($1);
+    $$ = $4;
+}
+
+| PIPELINE REDIRECTION SEMICOLON CMD
+{
+    if($1){
+        $1->foreground = 1;
+        $1->stdin = ($2._in<0)?0:$2._in;
+        $1->stdout = ($2._out<0)?1:$2._out;
+        $1->stderr = ($2._err<0)?2:$2._err;
+    }
+    $4.push_front($1);
+    $$ = $4;
+}
+| PIPELINE REDIRECTION
+{
+    if($1){
+        $1->foreground = 1;
+        $1->stdin = ($2._in<0)?0:$2._in;
+        $1->stdout = ($2._out<0)?1:$2._out;
+        $1->stderr = ($2._err<0)?2:$2._err;
+    }
+    $$.clear();
+    $$.push_front($1);
+}
 
 
 PIPELINE :
-SIMPLE_CMD PIPE SIMPLE_CMD
+BIN ARGUMENTS PIPE BIN ARGUMENTS
+{
+    auto p1 = shell.resolve_command($1,$2);
+    auto p2 = shell.resolve_command($4,$5);
+    fd3 fd = {0};
+    if(p1&&p2){
+        job j($1,fd);
+        j.processes.push_front(*p2);
+        j.processes.push_front(*p1);
+        $$ = j;
+    }else{
+        $$ = {};
+    }
 
-| PIPELINE PIPE SIMPLE_CMD
-*/
+}
+
+| PIPELINE PIPE BIN ARGUMENTS
+{
+    auto p = shell.resolve_command($3,$4);
+    if(p&&$1){
+        $1->processes.push_back(*p);
+        $$ = $1;
+    }else{
+        $$ = {};
+    }
+}
+
+
+
 
 BIN : ID
 {

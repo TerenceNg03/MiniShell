@@ -200,17 +200,19 @@ void minishell::launch_job (job& j){
 					setpgid (pid, j.pgid);
 				}
 			}
+
+            /* Clean up after pipes.  */
+            if (infile != j.stdin)
+                close (infile);
+            if (outfile != j.stdout)
+                close (outfile);
+            infile = mypipe[0];
+
 		}
 	}
 
     /* Update job only when really forked */
     if(forked){
-        /* Clean up after pipes.  */
-        if (infile != j.stdin)
-            close (infile);
-        if (outfile != j.stdout)
-            close (outfile);
-        infile = mypipe[0];
 
         if(!j.foreground)format_job_info (j, "launched");
 
