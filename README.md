@@ -10,7 +10,6 @@ Implementing a shell with basic function with **ONLY** POSIX system call.
 * Bison : `GNU Bison 3.2+`
 * flex : `flex 2.6.4`
 
-Note : This should be working on any OS implementing POSIX yet not tested.
 ### Supported Features
 ---
 
